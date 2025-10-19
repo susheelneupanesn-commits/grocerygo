@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GroceryGo — Store</title>
+  <link href="styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-left">
+      <h1>GroceryGo 🇳🇵</h1>
+      <div class="sub">Nepali & South Asian Groceries</div>
+    </div>
+    <nav class="header-nav">
+      <a href="index.html">Home</a>
+      <a href="store.html" class="active">Store</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="header-right small">
+      ABN: <strong>7777777777</strong> • mood_2cu@yahoo.com • 13 4767 2436
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="layout">
+      <div class="panel">
+        <div class="store-controls">
+          <input id="searchInput" placeholder="Search (Rice, Flour, Patanjali...)" oninput="renderProducts()">
+          <select id="categoryFilter" onchange="renderProducts()">
+            <option value="">All categories</option>
+            <option>Rice & Grains</option>
+            <option>Flour & Baking</option>
+            <option>Pulses & Legumes</option>
+            <option>Oils & Fats</option>
+            <option>Snacks & Biscuits</option>
+            <option>Beverages</option>
+            <option>Dairy & Eggs</option>
+            <option>Condiments & Spices</option>
+            <option>Household</option>
+            <option>Baby Care</option>
+          </select>
+        </div>
+
+        <div id="productsGrid" class="products-grid"></div>
+      </div>
+
+      <aside class="cart-panel panel">
+        <h3>Your Cart</h3>
+        <div id="cartList" class="cart-list"></div>
+
+        <div class="cart-summary">
+          <div><span>Items total:</span><strong id="itemsTotal">$0.00</strong></div>
+          <div><span>Delivery fee:</span><strong id="deliveryFee">$0.00</strong></div>
+          <div><span>Grand total:</span><strong id="grandTotal">$0.00</strong></div>
+
+          <div class="cart-actions">
+            <button id="checkoutBtn" class="btn-primary" onclick="beginCheckout()" disabled>Checkout</button>
+            <button class="btn-ghost" onclick="clearCart()">Clear Cart</button>
+          </div>
+
+          <div class="small muted" style="margin-top:8px">
+            Delivery tiers: within 5 km = $5 • 5–10 km = $10 • 10+ km = $15 (postcode simulation)
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- CHECKOUT MODAL -->
+  <div id="checkoutPanel" class="modal hidden">
+    <div class="modal-content">
+      <h3>Checkout</h3>
+      <div class="form-grid">
+        <label>Full name / Email or Mobile</label>
+        <input id="custContact" placeholder="email@example.com or +61412345678">
+
+        <label>Receipt preference</label>
+        <select id="receiptPref"><option value="email">Email</option><option value="sms">SMS</option></select>
+
+        <label>Address</label>
+        <input id="custAddress" placeholder="Street address">
+
+        <label>Suburb</label>
+        <input id="custSuburb">
+
+        <label>Postcode</label>
+        <input id="custPostcode" onblur="recalculateDelivery()">
+
+        <label>Card number</label>
+        <input id="cardNumber" placeholder="1234 5678 9012 3456">
+
+        <label>Expiry (MM/YY)</label>
+        <input id="cardExpiry" placeholder="MM/YY">
+
+        <label>CVV</label>
+        <input id="cardCvv" placeholder="123">
+      </div>
+
+      <div class="modal-actions">
+        <div class="small muted" id="modalNotice"></div>
+        <div>
+          <button class="btn-primary" onclick="processPayment()">Pay & Place Order</button>
+          <button class="btn-ghost" onclick="closeCheckout()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECEIPT MODAL -->
+  <div id="modalOverlay" class="overlay hidden" onclick="closeReceipt()"></div>
+  <div id="receiptModal" class="modal receipt hidden">
+    <div class="modal-content">
+      <div class="row">
+        <div><h2>Receipt — GroceryGo</h2><div class="small muted" id="receiptOrderId"></div></div>
+        <div><button class="btn-primary" onclick="downloadReceipt()">Download</button></div>
+      </div>
+
+      <div id="receiptBody"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <div class="small muted">Business: Brisbane Convention & Exhibition Centre, South Brisbane QLD 4101</div>
+        <div>
+          <button class="btn-primary" onclick="simulateSend('email')">Send via Email</button>
+          <button class="btn-primary" onclick="simulateSend('sms')">Send via SMS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SURVEY -->
+  <div id="surveyOverlay" class="overlay hidden"></div>
+  <div id="surveyBox" class="survey hidden">
+    <h4>How did we do?</h4>
+    <div id="starRow" class="stars">
+      <span onclick="setRating(1)" class="star">☆</span>
+      <span onclick="setRating(2)" class="star">☆</span>
+      <span onclick="setRating(3)" class="star">☆</span>
+      <span onclick="setRating(4)" class="star">☆</span>
+      <span onclick="setRating(5)" class="star">☆</span>
+    </div>
+    <label>Reason</label>
+    <select id="surveyReason">
+      <option>Quality of products</option>
+      <option>Delivery speed</option>
+      <option>Customer service</option>
+      <option>Website experience</option>
+      <option>Other</option>
+    </select>
+    <textarea id="surveyCustom" placeholder="Optional: Tell us more..." style="display:none"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-primary" onclick="submitSurvey()">Submit</button>
+      <button class="btn-ghost" onclick="hideSurvey()">Close</button>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div>GroceryGo • Brisbane Convention & Exhibition Centre • mood_2cu@yahoo.com • 13 4767 2436</div>
+    <div class="small muted">Demo — replace SendGrid/Twilio/Stripe integrations for production</div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+[
+  {
+    "id":"1",
+    "name":"Basmati Rice",
+    "brand":"Dawat",
+    "image":"https://via.placeholder.com/60?text=Basmati+Rice",
+    "promo":true,
+    "variants":[
+      {"name":"5kg","price":25.00},
+      {"name":"10kg","price":48.00},
+      {"name":"25kg","price":110.00}
+    ]
+  },
+  {
+    "id":"2",
+    "name":"Basmati Rice",
+    "brand":"Tilda",
+    "image":"https://via.placeholder.com/60?text=Basmati+Rice",
+    "promo":false,
+    "variants":[
+      {"name":"5kg","price":24.00},
+      {"name":"10kg","price":47.00},
+      {"name":"25kg","price":108.00}
+    ]
+  },
+  {
+    "id":"3",
+    "name":"Red Lentils",
+    "brand":"24 Mantra",
+    "image":"https://via.placeholder.com/60?text=Red+Lentils",
+    "promo":false,
+    "variants":[
+      {"name":"1kg","price":6.00},
+      {"name":"5kg","price":28.00},
+      {"name":"10kg","price":55.00}
+    ]
+  },
+  {
+    "id":"4",
+    "name":"Red Lentils",
+    "brand":"Organic India",
+    "image":"https://via.placeholder.com/60?text=Red+Lentils",
+    "promo":true,
+    "variants":[
+      {"name":"1kg","price":7.00},
+      {"name":"5kg","price":30.00},
+      {"name":"10kg","price":57.00}
+    ]
+  },
+  {
+    "id":"5",
+    "name":"Paneer",
+    "brand":"Amul",
+    "image":"https://via.placeholder.com/60?text=Paneer",
+    "promo":false,
+    "variants":[
+      {"name":"200g","price":5.00},
+      {"name":"500g","price":12.00},
+      {"name":"1kg","price":23.00}
+    ]
+  },
+  {
+    "id":"6",
+    "name":"Paneer",
+    "brand":"Gopal",
+    "image":"https://via.placeholder.com/60?text=Paneer",
+    "promo":true,
+    "variants":[
+      {"name":"200g","price":5.50},
+      {"name":"500g","price":13.00},
+      {"name":"1kg","price":24.00}
+    ]
+  },
+  {
+    "id":"7",
+    "name":"Green Tea",
+    "brand":"Tetley",
+    "image":"https://via.placeholder.com/60?text=Green+Tea",
+    "promo":false,
+    "variants":[
+      {"name":"250g","price":12.00},
+      {"name":"500g","price":22.00},
+      {"name":"1kg","price":40.00}
+    ]
+  },
+  {
+    "id":"8",
+    "name":"Green Tea",
+    "brand":"Twinings",
+    "image":"https://via.placeholder.com/60?text=Green+Tea",
+    "promo":false,
+    "variants":[
+      {"name":"250g","price":11.50},
+      {"name":"500g","price":21.00},
+      {"name":"1kg","price":39.00}
+    ]
+  },
+  {
+    "id":"9",
+    "name":"Ghee",
+    "brand":"Amul",
+    "image":"https://via.placeholder.com/60?text=Ghee",
+    "promo":true,
+    "variants":[
+      {"name":"500g","price":15.00},
+      {"name":"1kg","price":28.00},
+      {"name":"2kg","price":55.00}
+    ]
+  },
+  {
+    "id":"10",
+    "name":"Ghee",
+    "brand":"Ananda",
+    "image":"https://via.placeholder.com/60?text=Ghee",
+    "promo":false,
+    "variants":[
+      {"name":"500g","price":14.50},
+      {"name":"1kg","price":27.00},
+      {"name":"2kg","price":53.00}
+    ]
+  },
+  {
+    "id":"11",
+    "name":"Green Leafy Vegetables",
+    "brand":"Organic Valley",
+    "image":"https://via.placeholder.com/60?text=Green+Veg",
+    "promo":true,
+    "variants":[
+      {"name":"250g","price":4.00},
+      {"name":"500g","price":7.50},
+      {"name":"1kg","price":14.00}
+    ]
+  },
+  {
+    "id":"12",
+    "name":"Frozen Chicken",
+    "brand":"KFC Farm",
+    "image":"https://via.placeholder.com/60?text=Frozen+Chicken",
+    "promo":false,
+    "variants":[
+      {"name":"500g","price":8.50},
+      {"name":"1kg","price":16.00},
+      {"name":"2kg","price":30.00}
+    ]
+  }
+]
