@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GroceryGo | Admin Orders</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#f7f8fa;margin:0;padding:20px;}
+h1{color:#0072ce;margin-bottom:20px;}
+table{width:100%;border-collapse:collapse;margin-top:12px;}
+th,td{padding:8px;border:1px solid #ccc;text-align:left;font-size:14px;}
+th{background:#0072ce;color:white;}
+tr:nth-child(even){background:#f2f2f2;}
+.search-bar{margin-bottom:12px;}
+.search-bar input{padding:8px;width:250px;border-radius:6px;border:1px solid #ccc;}
+</style>
+</head>
+<body>
+<h1>Orders Admin</h1>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Search by order number, email or name...">
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Order No</th>
+      <th>Customer</th>
+      <th>Email</th>
+      <th>Phone</th>
+      <th>Items</th>
+      <th>Total (AUD $)</th>
+      <th>Status</th>
+      <th>Fulfillment</th>
+      <th>Created At</th>
+    </tr>
+  </thead>
+  <tbody id="ordersTable"></tbody>
+</table>
+
+<script>
+const SUPABASE_URL = "https://gikdqaxdqfmzdvolkxbn.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY"; // replace
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const ordersTable = document.getElementById("ordersTable");
+const searchInput = document.getElementById("searchInput");
+
+async function fetchOrders(){
+  const { data, error } = await supabaseClient.from("orders").select("*").order('created_at',{ascending:false});
+  if(error){ console.error(error); return; }
+  renderOrders(data);
+}
+
+function renderOrders(orders){
+  const searchTerm = searchInput.value.trim().toLowerCase();
+  ordersTable.innerHTML = '';
+  orders.forEach(order => {
+    const orderText = (order.order_number + order.email + order.customer_name).toLowerCase();
+    if(searchTerm && !orderText.includes(searchTerm)) return;
+
+    const itemsList = JSON.parse(order.items).map(i => `${i.name} x${i.quantity}`).join(", ");
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${order.order_number}</td>
+      <td>${order.customer_name}</td>
+      <td>${order.email}</td>
+      <td>${order.phone}</td>
+      <td>${itemsList}</td>
+      <td>${parseFloat(order.total_amount).toFixed(2)}</td>
+      <td>${order.status}</td>
+      <td>${order.fulfillment_status}</td>
+      <td>${new Date(order.created_at).toLocaleString('en-AU')}</td>
+    `;
+    ordersTable.appendChild(tr);
+  });
+}
+
+// Search filter
+searchInput.addEventListener("input", fetchOrders);
+
+// Polling every 10s to reflect new orders automatically
+setInterval(fetchOrders, 10000);
+
+fetchOrders();
+</script>
+</body>
+</html>

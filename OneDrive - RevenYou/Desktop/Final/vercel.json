@@ -1,0 +1,19 @@
+{
+  "builds": [
+    {
+      "src": "server.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/create-payment-intent",
+      "dest": "server.py",
+      "methods": ["POST"]
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
+}

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GroceryGo | Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary-color:#DC143C;
+  --secondary-color:#003893;
+  --highlight-color:#FFD700;
+  --bg-color:#f8f9fa;
+  --text-color:#222;
+  --border-color:#ddd;
+  --nepali-blue:#003893;
+}
+*{box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;margin:0;background:var(--bg-color);color:var(--text-color);line-height:1.6}
+
+/* Header / Logo / Nav */
+header{
+  background:linear-gradient(to right,var(--primary-color),var(--secondary-color));
+  color:#fff;
+  padding:15px 10px 5px 10px;
+  text-align:center;
+  position:sticky;
+  top:0;
+  z-index:1000;
+}
+header h1{
+  margin:0 0 5px 0;
+  font-size:30px;
+  font-weight:900;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:60px;
+  letter-spacing:-2px;
+}
+.logo-container{display:flex;align-items:center;position:relative;padding-left:10px}
+.logo-trolley-g{font-size:55px;color:white;font-weight:900;line-height:1;position:relative;padding-right:2px;text-shadow:1px 1px 0 var(--primary-color),2px 2px 2px rgba(0,0,0,0.5)}
+.logo-grocery-text{position:absolute;top:-4px;left:10px;font-size:14px;font-weight:700;color:#FF8C00;letter-spacing:0.5px;white-space:nowrap;text-shadow:0 0 1px rgba(0,0,0,0.4);z-index:10;transform:rotate(-5deg);padding:2px 4px;background:rgba(255,255,255,0.1);border-radius:3px}
+.logo-o{font-size:55px;color:white;font-weight:900;line-height:1;text-shadow:1px 1px 0 var(--primary-color),2px 2px 2px rgba(0,0,0,0.5);transform:translateX(-5px) rotate(2deg);position:relative;z-index:5}
+nav{margin-top:5px}
+nav a{color:white;text-decoration:none;margin:0 10px;font-weight:600;font-size:14px;padding:5px 0;display:inline-block}
+nav a:hover{text-decoration:underline}
+
+/* ✔ FIXED HEADER TOOLS 
+   Search bar now stretches fully to the trolley icon */
+.header-tools{
+  display:flex;
+  align-items:center;
+  width:100%;
+  max-width:1200px;
+  margin:0 auto;
+  padding:5px 10px;
+  gap:10px;
+}
+
+.search-wrap{
+  flex:1 !important;
+  display:flex;
+  position:relative;
+  margin-right:0 !important;
+  max-width:none !important;
+}
+
+#headerSearch{
+  width:100%;
+  padding:8px 15px;
+  border:none;
+  border-radius:6px;
+  font-size:16px;
+  box-sizing:border-box;
+}
+
+#headerSearchSuggestions{
+  border:1px solid var(--border-color);
+  border-radius:0 0 8px 8px;
+  max-height:300px;
+  overflow-y:auto;
+  background:white;
+  position:absolute;
+  width:100%;
+  display:none;
+  z-index:120;
+  color:var(--text-color);
+  box-shadow:0 4px 6px rgba(0,0,0,0.12);
+  top:100%;
+}
+#headerSearchSuggestions div{padding:8px 12px;cursor:pointer}
+#headerSearchSuggestions div:hover{background:var(--highlight-color);color:#000}
+
+#trolleyIcon{
+  cursor:pointer;
+  font-size:18px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  padding:5px 10px;
+  border:2px solid var(--highlight-color);
+  border-radius:6px;
+  background:rgba(255,255,255,0.08);
+  transition:background 0.2s;
+  white-space:nowrap;
+}
+#trolleyIcon:hover{background:rgba(255,255,255,0.14)}
+#trolleyCount{
+  background:var(--highlight-color);
+  color:var(--text-color);
+  padding:1px 6px;
+  border-radius:50%;
+  margin-left:8px;
+  font-size:14px;
+  font-weight:900;
+}
+/* Contact links in column */
+  .contact-links {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+  }
+
+  .contact-links a {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    color: #0077cc;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .contact-links a img {
+    width: 20px;  /* smaller and practical */
+    height: 20px;
+    margin-right: 10px;
+  }
+
+  .contact-links a:hover {
+    color: #004a99;
+    text-decoration: underline;
+  }
+
+  /* Address text */
+  .contact-links p {
+    margin-left: 30px; /* align with icons */
+    font-size: 16px;
+  }
+
+/* Banner */
+.banner{background:teal;color:white;padding:10px 0;text-align:center;font-weight:700;font-size:16px;position:relative;overflow:hidden;z-index:999;height:36px}
+.banner-content{display:flex;justify-content:center;align-items:center;white-space:nowrap;height:100%}
+.banner-text{display:inline-block;padding-right:12px}
+.banner-add-btn{background:var(--highlight-color);color:var(--text-color);border:none;padding:3px 8px;border-radius:4px;font-size:0.9em;font-weight:700;cursor:pointer;margin-left:10px}
+.banner-add-btn:hover{background:#ffc300}
+
+/* Container + categories */
+.container{width:95%;max-width:1200px;margin:20px auto;padding:10px}
+#horizontal-categories-container{overflow-x:auto;white-space:nowrap;padding:10px 0;border-bottom:1px solid var(--border-color);margin-top:-10px}
+.category-pill-btn{padding:8px 15px;margin-right:8px;border:1px solid var(--secondary-color);border-radius:20px;background:white;color:var(--secondary-color);cursor:pointer;font-weight:600;display:inline-block;transition:all 0.15s}
+.category-pill-btn:hover{background:#e8f7ff}
+.category-pill-btn.active{background:var(--nepali-blue);color:white;border-color:var(--nepali-blue)}
+
+/* Grids */
+#productGrid, #popularGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;margin-top:20px}
+.product-card{background:white;padding:15px;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.06);text-align:center;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;min-height:420px}
+.product-image-container{height:150px;width:100%;margin-bottom:10px;display:flex;justify-content:center;align-items:center}
+.product-card img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
+.product-info{flex-grow:1;text-align:left;margin-bottom:10px}
+.product-name{font-weight:600;margin:5px 0 0;font-size:1.05em;min-height:44px}
+.product-brand{color:#555;font-size:0.9em;margin-bottom:5px;display:block}
+.product-price{font-size:1.15em;font-weight:700;color:var(--primary-color);margin-bottom:5px;display:block}
+.add-to-cart-btn{width:100%;margin-top:8px;padding:10px 12px;border-radius:8px;font-size:1.05em;background:var(--primary-color);color:#fff;border:none;cursor:pointer}
+
+/* modal/toast */
+#confirmAddModal{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:18px;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.18);z-index:150;width:92%;max-width:420px;text-align:center}
+#confirmAddModal h3{margin:6px 0}
+.variant-selection{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
+.grid-variant-btn{padding:6px 10px;border-radius:6px;border:1px solid #ccc;background:#f6f6f6;cursor:pointer}
+.grid-variant-btn.selected{background:var(--nepali-blue);color:white;border-color:var(--nepali-blue)}
+#confirmModalAddBtn{margin-top:12px;padding:10px 14px;border-radius:8px;border:none;background:var(--primary-color);color:#fff;cursor:pointer}
+
+/* toast */
+#centerToast{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:var(--nepali-blue);color:white;padding:10px 16px;border-radius:6px;z-index:999;display:none;font-weight:700}
+
+/* small screens */
+@media(max-width:480px){
+  header h1{font-size:22px}
+  .product-name{font-size:1em}
+}
+footer{
+  background: var(--nepali-blue);
+  color: white;
+  text-align: center;
+  padding: 15px 0;
+  font-size: 14px;
+  margin-top: 40px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>
+    <div class="logo-container">
+      <span class="logo-trolley-g">G<span class="logo-grocery-text">Grocery</span></span>
+      <span class="logo-o">o</span>
+    </div>
+  </h1>
+
+  <nav>
+    <a href="index.html">HOME</a>
+    <a href="store.html">STORE</a>
+    <a href="about.html">ABOUT US</a>
+    <a href="contact.html">CONTACT</a>
+  </nav>
+
+  <div class="header-tools">
+    <div class="search-wrap" style="flex:1;min-width:220px;">
+      <input id="headerSearch" placeholder="🔍 Search (e.g., 'rice', 'MDH')..." autocomplete="off">
+      <div id="headerSearchSuggestions" role="listbox"></div>
+    </div>
+
+    <div id="trolleyIcon" onclick="window.location.href='trolley.html'">
+      🛒 <span id="trolleyCount">0</span>
+    </div>
+  </div>
+
+  <div class="banner">
+    <div id="dynamicBannerContent" class="banner-content">
+      <span id="dynamicBannerText" class="banner-text">Welcome to GroceryGo! New stock just arrived!</span>
+      <button class="banner-add-btn" id="bannerAddBtn">Add</button>
+    </div>
+  </div>
+</header>
+
+
+
+  <div class="contact-links">
+    <!-- Email -->
+    <a href="mailto:mood_2cu@yahoo.com">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Mail_%28iOS%29.svg" alt="Email Icon"> 
+      Email: mood_2cu@yahoo.com
+    </a>
+
+    <!-- Phone -->
+    <a href="tel:+61499205450">
+      <img src="https://webstockreview.net/images/cell-clipart-svg-1.png" alt="Phone Icon"> 
+      Phone: +61 499205450
+    </a>
+
+    <!-- WhatsApp -->
+    <a href="https://wa.me/61499205450" target="_blank">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp Icon"> 
+      WhatsApp
+    </a>
+
+    <!-- Facebook Messenger -->
+    <a href="https://m.me/grocerygo" target="_blank">
+      <img src="https://www.liblogo.com/img-logo/fa502f865-facebook-messenger-logo-file-facebook-messenger-logo-2020-svg-wikimedia-commons.png" alt="Messenger Icon"> 
+      Messenger
+    </a>
+
+    <!-- Address (non-clickable) -->
+    <p>📍 Address: 123 Hamal Road, Hamal Hill, QLD 4000 Australia</p>
+  </div>
+</div>
+<!-- Footer -->
+<footer>
+  © 2025 GroceryGo. All rights reserved.
+</footer>
+
+</body>
+</html>
