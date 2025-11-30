@@ -26,18 +26,31 @@ app.use(cors());
 // Serve static files from the 'public' directory (assuming frontend files are here)
 app.use(express.static(path.join(__dirname, 'public'))); 
 
-// ------------------- POSTCODES & DELIVERY FEE LOGIC -------------------
-function getDeliveryFee(postcode) {
-    const p = Number(postcode);
-    const first10km = [4000, 4005, 4006, 4007, 4008]; 
-    const km10to20 = [4009, 4010, 4011]; 
-    const km20plus = [4012, 4013];
+// ------------------- POSTCODES & DELIVERY FEE LOGIC (REVISED) -------------------
 
-    if (first10km.includes(p)) return 10;
-    if (km10to20.includes(p)) return 15;
-    if (km20plus.includes(p)) return 20;
+// Map postcodes to approximate distance in km from Brisbane Convention Centre
+const POSTCODE_DISTANCES = {
+    4000: 0, 4005:2, 4006:3, 4007:4, 4008:5, 4009:8,
+    4010:12, 4011:14, 4012:22, 4013:25, 4014:35, 4017:42
+    // NOTE: Ensure all other serviceable postcodes are added here
+};
+
+const DISTANCE_FEES = [
+    { maxKm: 10, fee: 10 },
+    { maxKm: 20, fee: 15 },
+    { maxKm: 30, fee: 20 },
+    { maxKm: Infinity, fee: 25 }
+];
+
+function getDeliveryFee(postcode) {
+    const dist = POSTCODE_DISTANCES[Number(postcode)];
+    // If postcode is not listed, use default fee
+    if(dist === undefined) return 25; 
     
-    // Default fee
+    for(const df of DISTANCE_FEES){
+        if(dist <= df.maxKm) return df.fee;
+    }
+    // Fallback fee
     return 25; 
 }
 
@@ -87,14 +100,15 @@ app.post('/api/stripe-webhook', bodyParser.raw({ type: 'application/json' }), as
 // --- Standard API Endpoints (Use JSON body parser after webhook) ---
 app.use(express.json()); // Use Express's built-in JSON body parser for all other routes
 
-// ------------------- CREATE PAYMENT INTENT -------------------
+// ------------------- CREATE PAYMENT INTENT (REVISED) -------------------
 app.post('/api/create-payment-intent', async (req, res) => {
     try {
         const { trolley, customer } = req.body;
+        // Destructure all customer fields, including the new deliverySlot
+        const { name, email, mobile, address, suburb, state, postcode, deliverySlot } = customer;
         
         if (!trolley || trolley.length === 0) return res.status(400).json({ error: 'Trolley is empty' });
 
-        const postcode = Number(customer.postcode);
         const deliveryFee = getDeliveryFee(postcode);
 
         // Check for basic service area (assuming anything not explicitly handled gets the default fee)
@@ -109,46 +123,47 @@ app.post('/api/create-payment-intent', async (req, res) => {
             amount: amountInCents,
             currency: 'aud',
             automatic_payment_methods: { enabled: true },
-            metadata: { customer_name: customer.name, email: customer.email }
+            metadata: { customer_name: name, email: email }
         });
         
-        // --- START SERIAL NUMBER GENERATION ---
-        let orderNumber; // Declared here for scope access
+        // --- START SERIAL NUMBER GENERATION ---
+        let orderNumber; 
 
-        // Call the Supabase function to get the next serial number
-        const { data: serialResult, error: serialError } = await supabase
-            .rpc('get_next_serial_number');
+        // Call the Supabase function to get the next serial number
+        const { data: serialResult, error: serialError } = await supabase
+            .rpc('get_next_serial_number');
 
-        if (serialError || !serialResult) {
-            console.error('Supabase serial number error:', serialError || 'No serial number returned');
-            // Fallback to random number for resilience
-            orderNumber = `GGO-ERR-${Math.floor(10000 + Math.random() * 90000)}`;
-        } else {
-            const serialNumber = serialResult;
-            // Format the number with leading zeros (e.g., 1 -> 0001, 10 -> 0010)
-            const paddedNumber = String(serialNumber).padStart(4, '0');
-            orderNumber = `GGO-${paddedNumber}`;
-        }
-        // --- END SERIAL NUMBER GENERATION ---
+        if (serialError || !serialResult) {
+            console.error('Supabase serial number error:', serialError || 'No serial number returned');
+            // Fallback to random number for resilience
+            orderNumber = `GGO-ERR-${Math.floor(10000 + Math.random() * 90000)}`;
+        } else {
+            const serialNumber = serialResult;
+            // Format the number with leading zeros (e.g., 1 -> 0001, 10 -> 0010)
+            const paddedNumber = String(serialNumber).padStart(4, '0');
+            orderNumber = `GGO-${paddedNumber}`;
+        }
+        // --- END SERIAL NUMBER GENERATION ---
 
-        // FIXED Insert order into Supabase with PENDING status
-        const { error } = await supabase.from('orders').insert([{
-            order_number: orderNumber,
-            customer_name: customer.name,
-            email: customer.email,
-            phone: customer.mobile, 
-            address_line1: customer.address, 
-            address_line2: null, 
-            suburb: customer.suburb,
-            postcode: customer.postcode,
-            state: customer.state,
-            country: 'Australia', 
-            items: JSON.stringify(trolley),
-            delivery_fee: deliveryFee, 
-            total_amount: grandTotal, 
-            stripe_id: paymentIntent.id, 
-            status: 'pending',
-        }]);
+        // Insert order into Supabase with PENDING status
+        const { error } = await supabase.from('orders').insert([{
+            order_number: orderNumber,
+            customer_name: name,
+            email: email,
+            phone: mobile, 
+            address_line1: address, 
+            address_line2: null, 
+            suburb: suburb,
+            postcode: postcode,
+            state: state,
+            country: 'Australia', 
+            delivery_slot: deliverySlot, // ⬅️ ADDED NEW FIELD
+            items: JSON.stringify(trolley),
+            delivery_fee: deliveryFee, 
+            total_amount: grandTotal, 
+            stripe_id: paymentIntent.id, 
+            status: 'pending',
+        }]);
 
         if (error) {
             console.error('Supabase insert error:', error);
@@ -189,10 +204,10 @@ app.get('/api/get-orders', async (req, res) => {
 
 // Only run app.listen() locally for standard development
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-    app.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
-        console.log(`Test Checkout at http://localhost:${PORT}/checkout.html`);
-    });
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`Test Checkout at http://localhost:${PORT}/checkout.html`);
+    });
 }
 
 // **CRITICAL VERCEL FIX:** Export the Express app instance. 
