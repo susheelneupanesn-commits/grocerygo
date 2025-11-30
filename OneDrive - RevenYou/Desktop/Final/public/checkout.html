@@ -5,61 +5,197 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GroceryGo | Checkout</title>
 <script src="https://js.stripe.com/v3/"></script>
+<style>
+  /* Basic styling for inputs and layout */
+  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+  label { display: block; margin-top: 10px; font-weight: bold; }
+  input, select, button { display: block; width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  #priceSummary div { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  #payment-element-container { margin-top: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>Checkout</h1>
+
+## Customer Details
+<label for="customerName">Full Name</label>
+<input id="customerName" placeholder="John Doe" value="Test Customer">
+
+<label for="customerEmail">Email</label>
+<input id="customerEmail" type="email" placeholder="john@example.com" value="test@example.com">
+
+<label for="customerMobile">Mobile</label>
+<input id="customerMobile" placeholder="0412345678" value="0412345678">
+
+<label for="customerAddress">Address</label>
+<input id="customerAddress" placeholder="123 Queen St" value="123 Queen St">
+
+<label for="customerSuburb">Suburb</label>
+<input id="customerSuburb" placeholder="Brisbane" value="Brisbane">
+
+<label for="customerState">State</label>
+<select id="customerState">
+    <option value="QLD" selected>QLD</option>
+    <option value="NSW">NSW</option>
+    <option value="VIC">VIC</option>
+</select>
+
+<label for="customerPostcode">Postcode</label>
+<input id="customerPostcode" placeholder="4000" value="4000">
+
+---
+
+## Order Summary
+<div id="priceSummary">
+    <div>Subtotal: <span id="subtotalAmount"></span></div>
+    <div>Delivery Fee: <span id="deliveryFee"></span></div>
+    <div><strong>Grand Total:</strong> <span id="grandTotalAmount"></span></div>
+</div>
+
+---
+
+## Payment
+
+<button id="getPaymentOptions">Get Payment Options</button>
+
+<div id="payment-element-container" style="display:none;">
+    <div id="payment-element"></div>
+</div>
+
+---
+
+## OTP Verification (For Testing)
+<button id="generateOTP">Generate OTP</button>
+<div id="otpDisplay" style="color:red;font-weight:bold;margin-top:10px;"></div>
+<input id="otpInput" placeholder="Enter OTP">
+
+<button id="placeOrder" style="display:none;">Place Order & Pay</button>
+
+</div>
+
 <script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-const SUPABASE_URL = "https://gikdqaxdqfmzdvolkxbn.supabase.co";
-const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp..."; // truncated
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-const STRIPE_PUBLISHABLE_KEY = "pk_test_51SUX2KAmiKZAr3Zs..."; // truncated
+// Retrieve the Publishable Key from your .env file in a secure way in production.
+// For testing, we use the key you provided earlier.
+const STRIPE_PUBLISHABLE_KEY = "pk_test_51SUX2KAmiKZAr3Zs..."; 
 const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-const elements = stripe.elements();
-const card = elements.create("card", { hidePostalCode: true });
-card.mount("#card-element");
 
-// DELIVERY FEES
+// DOM Elements
+const paymentElementContainer = document.getElementById("payment-element-container");
+const getPaymentOptionsButton = document.getElementById("getPaymentOptions");
+const placeOrderButton = document.getElementById("placeOrder");
+let elements; // Elements object will be created later
+
+// DELIVERY FEES (Client-side mirror of server logic for display)
 const SERVICE_AREAS = {
-  "4000": 10, "4005": 10, "4006": 10, "4007": 10, "4008": 10, "4009": 10,
-  "4010": 10, "4011": 10, "4012": 10, "4013": 10, "4014": 10, "4017": 15,
-  "4025": 10, "4031": 15, "4034": 15, "4075": 15, "4101": 15, "4120": 15, "4151": 15,
-  "4500": 20, "4207": 20, "4300": 20, "4305": 20
+  "4000": 10, "4005": 10, "4006": 10, "4007": 10, "4008": 10, "4009": 15,
+  "4010": 15, "4011": 15, "4012": 20, "4013": 20, "4014": 25, "4017": 25
 };
-const MAX_FEE = 20;
+const DEFAULT_FEE = 25; 
 
 function calculateDeliveryFee(postcode) {
-  return SERVICE_AREAS[postcode] || 0;
+  return SERVICE_AREAS[postcode] || DEFAULT_FEE; 
 }
 
 function formatCurrency(amount) {
   return new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format(amount);
 }
 
-// TROLLEY
+// TROLLEY & INITIAL CALCULATIONS
 const trolley = JSON.parse(localStorage.getItem("grocerygo_trolley") || "[]");
 if(!trolley.length){
   alert("Your trolley is empty");
-  window.location.href = "/index.html";
+  // window.location.href = "/index.html";
 }
 let subtotal = trolley.reduce((s,i)=>s+(i.price*i.quantity),0);
 let deliveryFee = 0;
 
-document.getElementById("customerPostcode").oninput = (e)=>{
-  const postcode = e.target.value.trim();
+document.getElementById("subtotalAmount").innerText = formatCurrency(subtotal);
+
+const updateSummary = (postcode) => {
   deliveryFee = calculateDeliveryFee(postcode);
   document.getElementById("deliveryFee").innerText = formatCurrency(deliveryFee);
   document.getElementById("grandTotalAmount").innerText = formatCurrency(subtotal + deliveryFee);
 }
 
-// OTP generation (for testing, show on screen)
+document.getElementById("customerPostcode").oninput = (e) => updateSummary(e.target.value.trim());
+updateSummary(document.getElementById("customerPostcode").value.trim());
+
+
+// OTP generation
 let currentOTP = null;
 function generateOTP() {
   currentOTP = Math.floor(100000 + Math.random()*900000);
   document.getElementById("otpDisplay").innerText = `Your OTP for testing: ${currentOTP}`;
 }
+document.getElementById("generateOTP").onclick = generateOTP;
 
-// PLACE ORDER BUTTON
-document.getElementById("placeOrder").onclick = async ()=>{
+
+// --- STEP 1: GET PAYMENT OPTIONS (Create Payment Intent) ---
+getPaymentOptionsButton.onclick = async (e) => {
+    e.preventDefault();
+    
+    // Collect all customer details for validation and API call
+    const name = document.getElementById("customerName").value.trim();
+    const email = document.getElementById("customerEmail").value.trim();
+    const phone = document.getElementById("customerMobile").value.trim();
+    const address = document.getElementById("customerAddress").value.trim();
+    const suburb = document.getElementById("customerSuburb").value.trim();
+    const state = document.getElementById("customerState").value;
+    const postcode = document.getElementById("customerPostcode").value.trim();
+
+    if (!name || !email || !phone || !address || !suburb || !state || !postcode) {
+        alert("Please fill all required customer fields.");
+        return;
+    }
+
+    getPaymentOptionsButton.innerText = "Processing...";
+    getPaymentOptionsButton.disabled = true;
+
+    // API call to create Payment Intent and initial Supabase record
+    const res = await fetch("/api/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            trolley,
+            customer: {
+                name, email, phone, address, suburb, state, postcode
+            }
+        })
+    });
+
+    const data = await res.json();
+    if (data.error) {
+        alert(data.error);
+        getPaymentOptionsButton.innerText = "Get Payment Options";
+        getPaymentOptionsButton.disabled = false;
+        return;
+    }
+
+    // 2. Initialize and Mount the Payment Element with the client secret
+    const clientSecret = data.clientSecret;
+    window.orderNumber = data.orderNumber; // Save order number
+
+    // Initialize Elements with the client secret
+    elements = stripe.elements({ clientSecret });
+
+    const paymentElement = elements.create("payment", { layout: 'tabs' });
+    paymentElement.mount("#payment-element");
+
+    // 3. Show the Payment section and place order button
+    paymentElementContainer.style.display = 'block';
+    placeOrderButton.style.display = 'block';
+    getPaymentOptionsButton.style.display = 'none';
+};
+
+
+// --- STEP 2: SUBMIT PAYMENT ---
+placeOrderButton.onclick = async (e)=>{
+  e.preventDefault();
+
+  // Re-collect data for confirmation (good practice)
   const name = document.getElementById("customerName").value.trim();
   const email = document.getElementById("customerEmail").value.trim();
   const phone = document.getElementById("customerMobile").value.trim();
@@ -69,81 +205,43 @@ document.getElementById("placeOrder").onclick = async ()=>{
   const postcode = document.getElementById("customerPostcode").value.trim();
   const otpInput = document.getElementById("otpInput").value.trim();
   
-  if(!name||!email||!phone||!address||!suburb||!state||!postcode){
-    alert("Fill all fields");
-    return;
-  }
-
   if(!otpInput || otpInput != currentOTP){
     alert("Invalid OTP. Generate and enter the OTP.");
     return;
   }
+  
+  placeOrderButton.innerText = "Processing Payment...";
+  placeOrderButton.disabled = true;
 
-  const grandTotal = subtotal + deliveryFee;
-  const amountInCents = Math.round(grandTotal*100);
-
-  // Create payment intent via API route
-  const res = await fetch("/api/create-payment-intent",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      amount: amountInCents,
-      trolley,
-      customer:{
-        name,email,phone,address,suburb,state,postcode,deliveryFee
+  // Confirm the payment with Stripe
+  const { error: stripeError } = await stripe.confirmPayment({
+    elements: elements,
+    confirmParams: {
+      // Use the orderNumber saved in step 1
+      return_url: `${window.location.origin}/order-success.html?order=${window.orderNumber}`, 
+      payment_method_data: {
+         billing_details: { 
+             name: name,
+             email: email,
+             phone: phone,
+             address: {
+                line1: address,
+                city: suburb,
+                state: state,
+                postal_code: postcode,
+                country: "AU"
+             }
+         }
       }
-    })
-  });
-  const data = await res.json();
-  if(data.error){ alert(data.error); return; }
-
-  const result = await stripe.confirmCardPayment(data.clientSecret,{
-    payment_method:{ card, billing_details:{ name,email,phone,address:{line1:address,city:suburb,state,postal_code:postcode,country:"AU"} } }
+    },
   });
 
-  if(result.error){
-    alert("Payment failed: "+result.error.message);
-  } else if(result.paymentIntent.status === "succeeded"){
-    alert(`Payment successful! Order: ${data.orderNumber}`);
-    localStorage.removeItem("grocerygo_trolley");
-    window.location.href="/index.html";
+  if(stripeError){
+    alert("Payment failed: "+stripeError.message);
+    placeOrderButton.innerText = "Place Order & Pay";
+    placeOrderButton.disabled = false;
   }
 };
-
-// GENERATE OTP BUTTON
-document.getElementById("generateOTP").onclick = generateOTP;
 </script>
-</head>
-<body>
-<div class="container">
-<h1>Checkout</h1>
-<label>Full Name</label><input id="customerName" placeholder="John Doe">
-<label>Email</label><input id="customerEmail" placeholder="john@example.com">
-<label>Mobile</label><input id="customerMobile" placeholder="0412345678">
-<label>Address</label><input id="customerAddress" placeholder="123 Queen St">
-<label>Suburb</label><input id="customerSuburb" placeholder="Brisbane">
-<label>State</label>
-<select id="customerState">
-<option value="QLD" selected>QLD</option>
-<option value="NSW">NSW</option>
-<option value="VIC">VIC</option>
-</select>
-<label>Postcode</label><input id="customerPostcode" placeholder="4000">
-<div id="priceSummary">
-<div>Subtotal: <span id="subtotalAmount">$0.00</span></div>
-<div>Delivery Fee: <span id="deliveryFee">$0.00</span></div>
-<div>Grand Total: <span id="grandTotalAmount">$0.00</span></div>
-</div>
-<h2>Payment</h2>
-<label>Cardholder Name</label><input id="cardName" placeholder="John Doe">
-<div id="card-element" style="padding:12px;border:1px solid #ccc;border-radius:8px;"></div>
-
-<h3>OTP Verification</h3>
-<button id="generateOTP">Generate OTP (for testing)</button>
-<div id="otpDisplay" style="color:red;font-weight:bold;"></div>
-<input id="otpInput" placeholder="Enter OTP">
-
-<button id="placeOrder">Place Order & Pay</button>
-</div>
 </body>
 </html>
