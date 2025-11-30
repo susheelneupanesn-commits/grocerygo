@@ -159,72 +159,81 @@ card.mount("#card-element");
 document.getElementById("backTrolley").onclick=()=>window.location.href="trolley.html";
 
 // Place order
-document.getElementById("placeOrder").onclick=async ()=>{
-  const name=document.getElementById("customerName").value.trim();
-  const email=document.getElementById("customerEmail").value.trim();
-  const phone=document.getElementById("customerMobile").value.trim();
-  const address=document.getElementById("customerAddress").value.trim();
-  const suburb=document.getElementById("customerSuburb").value.trim();
-  const state=document.getElementById("customerState").value;
-  const postcode=document.getElementById("customerPostcode").value.trim();
-  const slot=document.getElementById("deliverySlot").value;
-  const cardName=document.getElementById("cardName").value.trim();
-  const special=document.getElementById("specialInstructions").value.trim();
-  const country="AU";
+document.getElementById("placeOrder").onclick = async () => {
+  const name = document.getElementById("customerName").value.trim();
+  const email = document.getElementById("customerEmail").value.trim();
+  const phone = document.getElementById("customerMobile").value.trim();
+  const address = document.getElementById("customerAddress").value.trim();
+  const suburb = document.getElementById("customerSuburb").value.trim();
+  const state = document.getElementById("customerState").value;
+  const postcode = document.getElementById("customerPostcode").value.trim();
+  const slot = document.getElementById("deliverySlot").value;
+  const cardName = document.getElementById("cardName").value.trim();
+  const special = document.getElementById("specialInstructions").value.trim();
+  const country = "AU";
 
-  if(!name||!email||!phone||!address||!suburb||!state||!postcode||!slot||!cardName){
-    alert("Please fill all fields and select a delivery slot."); return;
+  if (!name || !email || !phone || !address || !suburb || !state || !postcode || !slot || !cardName) {
+    alert("Please fill all fields and select a delivery slot.");
+    return;
   }
 
-  if(!allowedPostcodes.includes(parseInt(postcode,10))){
-    alert("Sorry, delivery is not available in your area ("+postcode+")."); return;
+  if (!allowedPostcodes.includes(parseInt(postcode, 10))) {
+    alert("Sorry, delivery is not available in your area (" + postcode + ").");
+    return;
   }
 
-  const grandTotal=subtotal+deliveryFee;
-  const amountInCents=Math.round(grandTotal*100);
+  const grandTotal = subtotal + deliveryFee;
+  const amountInCents = Math.round(grandTotal * 100);
 
-  try{
-    const response = await fetch("/create-payment-intent",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        amount:amountInCents,
+  try {
+    const response = await fetch("/api/create-payment-intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: amountInCents,
         trolley,
-        customer:{name,email,phone,address,suburb,state,postcode,slot,special}
+        customer: { name, email, phone, address, suburb, state, postcode, slot, special }
       })
     });
 
-    const data=await response.json();
-    if(data.error) throw new Error(data.error);
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
 
-    const result = await stripe.confirmCardPayment(data.clientSecret,{
-      payment_method:{
-        card:card,
-        billing_details:{
-          name:cardName,email,phone,address:{line1:address,city:suburb,state,postal_code:postcode,country}
+    const result = await stripe.confirmCardPayment(data.clientSecret, {
+      payment_method: {
+        card: card,
+        billing_details: {
+          name: cardName,
+          email,
+          phone,
+          address: { line1: address, city: suburb, state, postal_code: postcode, country }
         }
       }
     });
 
-    if(result.error){
-      messageBox.innerHTML="❌ Payment failed: "+result.error.message+"<br><small>Click anywhere to dismiss</small>";
-      messageOverlay.style.display="flex"; return;
+    if (result.error) {
+      messageBox.innerHTML = "❌ Payment failed: " + result.error.message + "<br><small>Click anywhere to dismiss</small>";
+      messageOverlay.style.display = "flex";
+      return;
     }
 
-    let countdown=5;
-    messageBox.innerHTML=`✅ Payment Successful!<br>Your order no: GGO-${Math.floor(100000+Math.random()*900000)}<br>Redirecting in ${countdown}...`;
-    messageOverlay.style.display="flex";
+    let countdown = 5;
+    messageBox.innerHTML = `✅ Payment Successful!<br>Your order no: GGO-${Math.floor(100000 + Math.random() * 900000)}<br>Redirecting in ${countdown}...`;
+    messageOverlay.style.display = "flex";
     localStorage.removeItem("grocerygo_trolley");
 
-    const interval=setInterval(()=>{
-      countdown--; 
-      messageBox.innerHTML=`✅ Payment Successful!<br>Your order no: GGO-${Math.floor(100000+Math.random()*900000)}<br>Redirecting in ${countdown}...`;
-      if(countdown<=0){ clearInterval(interval); window.location.href="index.html"; }
-    },1000);
+    const interval = setInterval(() => {
+      countdown--;
+      messageBox.innerHTML = `✅ Payment Successful!<br>Your order no: GGO-${Math.floor(100000 + Math.random() * 900000)}<br>Redirecting in ${countdown}...`;
+      if (countdown <= 0) {
+        clearInterval(interval);
+        window.location.href = "index.html";
+      }
+    }, 1000);
 
-  }catch(err){
-    messageBox.innerHTML="❌ Error: "+err.message+"<br><small>Click anywhere to dismiss</small>";
-    messageOverlay.style.display="flex";
+  } catch (err) {
+    messageBox.innerHTML = "❌ Error: " + err.message + "<br><small>Click anywhere to dismiss</small>";
+    messageOverlay.style.display = "flex";
   }
 };
 </script>
