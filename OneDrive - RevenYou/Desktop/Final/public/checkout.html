@@ -1,202 +1,426 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Checkout</title>
-
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; }
-    .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
-    input, select { width: 100%; padding: 10px; margin: 8px 0; }
-    #card-element { padding: 12px; border: 1px solid #ccc; border-radius: 6px; background: white; }
-    button { width: 100%; padding: 12px; background: black; color: white; border: none; border-radius: 6px; }
-    .hidden { display: none; }
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GroceryGo — Checkout</title>
 
   <!-- Stripe -->
   <script src="https://js.stripe.com/v3/"></script>
+  <!-- Supabase (client) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+  <style>
+    body { font-family: Inter, Arial, sans-serif; background:#f5f7fb; margin:0; padding:20px; }
+    .wrap { max-width: 900px; margin: 16px auto; display:grid; grid-template-columns: 1fr 420px; gap:20px; }
+    .card { background:white; padding:18px; border-radius:10px; box-shadow:0 6px 20px rgba(20,20,40,0.06);}
+    h2 { margin:0 0 12px 0; color:#0b63b7; }
+    label { display:block; font-weight:600; margin:8px 0 6px; font-size:0.95em; color:#333; }
+    input, select, textarea { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #d1d5db; font-size:0.95em; }
+    textarea { min-height:84px; }
+    .row { display:flex; gap:12px; }
+    .row > div { flex:1; }
+    #card-element { padding:12px; border-radius:8px; border:1px solid #d1d5db; background:#fff; min-height:48px; }
+    .muted { color:#6b7280; font-size:0.9em; }
+    .summary { display:flex; flex-direction:column; gap:10px; }
+    .line { display:flex; justify-content:space-between; color:#374151; }
+    .total { font-weight:700; font-size:1.05em; color:#111827; border-top:1px dashed #e5e7eb; padding-top:10px; margin-top:6px; }
+    .btn { background:#0072ce; color:white; padding:12px; border-radius:8px; border:none; cursor:pointer; font-weight:700; width:100%; }
+    .btn:disabled { background:#9ca3af; cursor:not-allowed; }
+    .note { font-size:0.9em; color:#374151; margin-top:8px; }
+    .success { background:#ecfdf5; border:1px solid #bbf7d0; padding:12px; border-radius:8px; color:#065f46; margin-top:12px; }
+    @media(max-width:980px){ .wrap{ grid-template-columns:1fr; } }
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <!-- LEFT: Customer & Payment -->
+    <div class="card">
+      <h2>Delivery & Customer</h2>
 
-<div class="container">
-  <h2>Checkout</h2>
+      <div class="row">
+        <div>
+          <label for="fullName">Full name</label>
+          <input id="fullName" placeholder="Jane Doe" />
+        </div>
+        <div>
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="jane@example.com" />
+        </div>
+      </div>
 
-  <label>Full Name</label>
-  <input id="name" />
+      <div class="row">
+        <div>
+          <label for="mobile">Mobile</label>
+          <input id="mobile" placeholder="0412 345 678" />
+        </div>
+        <div>
+          <label for="altPhone">Alt phone (optional)</label>
+          <input id="altPhone" placeholder="02 9999 9999" />
+        </div>
+      </div>
 
-  <label>Phone</label>
-  <input id="phone" />
+      <label for="unit">Unit / Apt (optional)</label>
+      <input id="unit" placeholder="Unit 5" />
 
-  <label>Postcode</label>
-  <input id="postcode" />
+      <label for="street">Street address</label>
+      <input id="street" placeholder="123 Queen St" />
 
-  <p id="postcodeMsg" style="color:red;"></p>
+      <div class="row">
+        <div>
+          <label for="suburb">Suburb</label>
+          <input id="suburb" placeholder="Brisbane" />
+        </div>
+        <div>
+          <label for="state">State</label>
+          <select id="state">
+            <option>QLD</option><option>NSW</option><option>VIC</option><option>WA</option><option>SA</option><option>TAS</option><option>NT</option><option>ACT</option>
+          </select>
+        </div>
+      </div>
 
-  <label>Delivery Slot</label>
-  <select id="slot"></select>
+      <div class="row">
+        <div>
+          <label for="postcode">Postcode</label>
+          <input id="postcode" placeholder="4000" />
+        </div>
+        <div>
+          <label for="gate">Gate / Security code</label>
+          <input id="gate" placeholder="Gate code (optional)" />
+        </div>
+      </div>
 
-  <h3>Order Summary</h3>
-  <p>Subtotal: $<span id="subtotal">0.00</span></p>
-  <p>Delivery Fee: $<span id="delivery">0.00</span></p>
-  <p><strong>Total: $<span id="total">0.00</span></strong></p>
+      <label>Delivery instructions</label>
+      <textarea id="instructions" placeholder="Leave at front door, call on arrival, etc."></textarea>
 
-  <h3>Card Details</h3>
-  <div id="card-element"></div>
-  <p id="card-error" style="color:red;"></p>
+      <div style="margin-top:8px;">
+        <label>Options</label>
+        <div style="display:flex; gap:10px;">
+          <label style="display:flex;align-items:center;gap:6px"><input id="leaveAtDoor" type="checkbox" /> Leave at door</label>
+          <label style="display:flex;align-items:center;gap:6px"><input id="callOnArrival" type="checkbox" /> Call on arrival</label>
+        </div>
+      </div>
 
-  <button id="payBtn">Place Order & Pay</button>
+      <div style="margin-top:14px;">
+        <label>Delivery date/time (choose slot)</label>
+        <select id="deliverySlot"><option value="">Loading slots...</option></select>
+        <div class="muted note">Earliest available is 8 hours from order time.</div>
+      </div>
 
-  <p id="successMsg" style="color:green;font-weight:bold;"></p>
-</div>
+      <hr style="margin:16px 0;border:none;border-top:1px solid #eef2f7;" />
+
+      <h2>Payment</h2>
+      <label for="cardName">Name on card</label>
+      <input id="cardName" placeholder="Jane Doe" />
+
+      <label for="card">Card details</label>
+      <div id="card-element"></div>
+      <div id="card-error" class="muted" style="color:#b91c1c;min-height:20px;"></div>
+
+      <div style="margin-top:14px;">
+        <label>Promo code</label>
+        <div style="display:flex; gap:8px;">
+          <input id="promo" placeholder="Optional promo code" />
+          <button id="applyPromo" class="btn" style="padding:8px 12px;width:auto">Apply</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button id="placeOrderBtn" class="btn">Place Order & Pay</button>
+        <div id="processingNote" class="note"></div>
+        <div id="otpBox" class="note" style="margin-top:8px; display:none;"></div>
+        <div id="orderSuccess" class="success" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Summary -->
+    <aside class="card">
+      <h2>Order summary</h2>
+      <div id="summaryLines" class="summary">
+        <div class="line"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+        <div class="line"><span>Delivery fee</span><span id="deliveryFee">$0.00</span></div>
+        <div class="line"><span>Promo discount</span><span id="promoDiscount">-$0.00</span></div>
+        <div class="total"><span>Total</span><span id="grandTotal">$0.00</span></div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <p class="muted">Payment is processed securely via Stripe. For testing, OTP will be shown on screen.</p>
+      </div>
+    </aside>
+  </div>
 
 <script>
-/* --------------------------------------------------------------
-   1️⃣ INITIALISE SUPABASE
--------------------------------------------------------------- */
-const supabase = supabaseJs.createClient(
-  "https://gikdqaxdqfmzdvolkxbn.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdpa2RxYXhkcWZtemR2b2xreGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyOTQwNDIsImV4cCI6MjA3Nzg3MDA0Mn0.pJ-9KfCxV7YT5loiURW14xRmf72s1EZRFRh4iKGnQis"
-);
+/* ===============================================
+   CONFIG — replace with NEXT_PUBLIC var names or hardcode during testing
+   (Best practice: set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and NEXT_PUBLIC_SUPABASE_* in Vercel)
+   =============================================== */
+const STRIPE_PUB = (typeof NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY !== 'undefined') ? NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY : 'pk_test_51SUX2KAmiKZAr3ZsHxEue0cUDH0lVUC3aR0V8TtkOgLyuyNK80iU9KqXADQFELwch25igWkYie3XJr7pe39DI0J4005mJ5xL5S';
+const SUPABASE_URL = (typeof NEXT_PUBLIC_SUPABASE_URL !== 'undefined') ? NEXT_PUBLIC_SUPABASE_URL : 'https://gikdqaxdqfmzdvolkxbn.supabase.co';
+const SUPABASE_KEY = (typeof NEXT_PUBLIC_SUPABASE_ANON_KEY !== 'undefined') ? NEXT_PUBLIC_SUPABASE_ANON_KEY : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdpa2RxYXhkcWZtemR2b2xreGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyOTQwNDIsImV4cCI6MjA3Nzg3MDA0Mn0.pJ-9KfCxV7YT5loiURW14xRmf72s1EZRFRh4iKGnQis';
 
-/* --------------------------------------------------------------
-   2️⃣ STRIPE SETUP
--------------------------------------------------------------- */
-const stripe = Stripe(
-  "pk_test_51SUX2KAmiKZAr3ZsHxEue0cUDH0lVUC3aR0V8TtkOgLyuyNK80iU9KqXADQFELwch25igWkYie3XJr7pe39DI0J4005mJ5xL5S"
-);
-
+/* ===============================================
+   INITIALIZE Supabase & Stripe Elements
+   =============================================== */
+const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+const stripe = Stripe(STRIPE_PUB);
 const elements = stripe.elements();
-const cardElement = elements.create("card", { hidePostalCode: true });
-cardElement.mount("#card-element");
+const card = elements.create('card', { hidePostalCode: true });
+card.mount('#card-element');
 
-/* --------------------------------------------------------------
-   3️⃣ LOAD TROLLEY + SUBTOTAL
--------------------------------------------------------------- */
-let trolley = JSON.parse(localStorage.getItem("trolley") || "[]");
-
-let subtotal = trolley.reduce((s, i) => s + i.price * i.quantity, 0);
-document.getElementById("subtotal").innerText = subtotal.toFixed(2);
-
-/* --------------------------------------------------------------
-   4️⃣ POSTCODE CHECK + DELIVERY FEE CALC
--------------------------------------------------------------- */
-const SERVICABLE = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4169,4170,4171,4172,4173,4174,4178,4179,4183,4184,4205,4207,4280,4285,4300,4301,4303,4304,4305,4306,4307,4308,4311,4340,4346,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4512,4513,4514,4515,4516,4517,4518,4519,4520,4521];
-
-document.getElementById("postcode").addEventListener("input", () => {
-  checkDelivery();
+card.on('change', (e) => {
+  const cardErr = document.getElementById('card-error');
+  cardErr.textContent = e.error ? e.error.message : '';
 });
 
-function checkDelivery() {
-  const pc = parseInt(document.getElementById("postcode").value);
-  const msg = document.getElementById("postcodeMsg");
+/* ===============================================
+   SERVICE AREA POSTCODES (provided list)
+   =============================================== */
+const SERVICE_POSTCODES = [
+  4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,
+  4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,
+  4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,
+  4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,
+  4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,
+  4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,
+  4156,4157,4158,4159,4160,4161,4163,4164,4165,4169,4170,4171,4172,
+  4173,4174,4178,4179,4183,4184,4205,4207,4280,4285,4300,4301,4303,
+  4304,4305,4306,4307,4308,4311,4340,4346,4500,4501,4502,4503,4504,
+  4505,4506,4507,4508,4509,4510,4511,4512,4513,4514,4515,4516,4517,
+  4518,4519,4520,4521
+];
 
-  if (!SERVICABLE.includes(pc)) {
-    msg.innerText = "Sorry, we do not service this postcode.";
-    return false;
-  }
+/* ===============================================
+   START: trolley data & totals (uses localStorage key "grocerygo_trolley")
+   =============================================== */
+let trolley = JSON.parse(localStorage.getItem('grocerygo_trolley') || '[]');
+if (!Array.isArray(trolley) || trolley.length === 0) {
+  // user should be redirected but keep page usable
+  document.getElementById('subtotal').textContent = '0.00';
+} else {
+  const subtotal = trolley.reduce((s,i)=>s + (i.price || 0)* (i.quantity || 1), 0);
+  window.__GG_subtotal = subtotal;
+  document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+  document.getElementById('grandTotal').textContent = subtotal.toFixed(2);
+}
 
-  msg.innerText = "";
-  
-  // Distance = difference from 4000
+/* ===============================================
+   DELIVERY FEES logic (distance from 4000)
+   - <=10 -> $10
+   - 10-20 -> $15
+   - >20 -> $20
+   =============================================== */
+function computeDeliveryFee(postcode) {
+  const pc = Number(postcode);
+  if (!SERVICE_POSTCODES.includes(pc)) return null; // not serviceable
   const diff = Math.abs(pc - 4000);
-  let fee = 20;
-  if (diff <= 10) fee = 10;
-  else if (diff <= 20) fee = 15;
-
-  document.getElementById("delivery").innerText = fee.toFixed(2);
-  document.getElementById("total").innerText = (subtotal + fee).toFixed(2);
-
-  return fee;
+  if (diff <= 10) return 10;
+  if (diff <= 20) return 15;
+  return 20;
 }
 
-/* --------------------------------------------------------------
-   5️⃣ DELIVERY SLOT (8 HOURS FROM NOW)
--------------------------------------------------------------- */
-const slotSelect = document.getElementById("slot");
+/* update UI totals */
+function updateTotalsUI(deliveryFee=0, promo=0) {
+  const subtotal = Number(window.__GG_subtotal || 0);
+  const total = Math.max(0, subtotal + deliveryFee - promo);
+  document.getElementById('deliveryFee').textContent = deliveryFee.toFixed(2);
+  document.getElementById('promoDiscount').textContent = '-' + promo.toFixed(2);
+  document.getElementById('grandTotal').textContent = total.toFixed(2);
+}
 
-function loadSlots() {
+/* postcode change handler */
+document.getElementById('postcode').addEventListener('input', (e) => {
+  const pc = e.target.value.trim();
+  const msg = document.getElementById('postcodeMsg');
+  if (pc.length < 4) { msg.textContent = ''; updateTotalsUI(0,0); return; }
+  const fee = computeDeliveryFee(pc);
+  if (fee === null) {
+    msg.textContent = 'Delivery not available in this postcode.';
+    msg.style.color = '#b91c1c';
+    updateTotalsUI(0,0);
+  } else {
+    msg.textContent = `Delivery fee: $${fee.toFixed(2)}`;
+    msg.style.color = '#065f46';
+    // store working fee
+    window.__GG_deliveryFee = fee;
+    updateTotalsUI(fee, window.__GG_promo || 0);
+  }
+});
+
+/* promo apply */
+document.getElementById('applyPromo').addEventListener('click', (ev) => {
+  ev.preventDefault();
+  const code = document.getElementById('promo').value.trim();
+  // simple demo promo logic
+  let discount = 0;
+  if (code === 'SAVE10') discount = 10;
+  if (code === 'FREESHIP') discount = window.__GG_deliveryFee || 0;
+  window.__GG_promo = discount;
+  updateTotalsUI(window.__GG_deliveryFee || 0, discount);
+});
+
+/* ===============================================
+   Delivery Slot generation (8 hour lead time)
+   =============================================== */
+function loadDeliverySlots() {
+  const sel = document.getElementById('deliverySlot');
+  sel.innerHTML = '';
   const now = new Date();
-  now.setHours(now.getHours() + 8);
-
-  for (let i=0; i<5; i++) {
-    const t = new Date(now.getTime() + i * 60 * 60 * 1000);
-    const label = t.toLocaleString();
-    const opt = document.createElement("option");
-    opt.value = label;
-    opt.textContent = label;
-    slotSelect.appendChild(opt);
+  now.setHours(now.getHours() + 8); // earliest
+  // create next 7 * 2 slots (same pattern as earlier)
+  for (let d = 0; d < 7; d++) {
+    const day = new Date(now.getTime() + d*24*60*60*1000);
+    const dayLabel = day.toLocaleDateString('en-AU', { weekday: 'short', day:'numeric', month:'short' });
+    [{h:10,l:'10am–2pm'},{h:14,l:'2pm–6pm'}].forEach(slot => {
+      const slotStart = new Date(day);
+      slotStart.setHours(slot.h,0,0,0);
+      if (slotStart.getTime() > (new Date()).getTime() + 8*60*60*1000 - 1) {
+        const option = document.createElement('option');
+        option.value = `${dayLabel} ${slot.l}`;
+        option.textContent = `${dayLabel} ${slot.l}`;
+        sel.appendChild(option);
+      }
+    });
+  }
+  if (!sel.options.length) {
+    const opt = document.createElement('option'); opt.textContent = 'No slots available'; opt.disabled = true; sel.appendChild(opt);
   }
 }
-loadSlots();
+loadDeliverySlots();
 
-/* --------------------------------------------------------------
-   6️⃣ PAYMENT + ORDER INSERT
--------------------------------------------------------------- */
-document.getElementById("placeOrder").onclick
+/* ===============================================
+   Place order & payment flow
+   - create-payment-intent (serverless) returns clientSecret
+   - confirmCardPayment via stripe
+   - on success: insert order to Supabase (client-side using anon key)
+   - show simulated OTP on screen (testing)
+   =============================================== */
 
-  const name = document.getElementById("name").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-  const postcode = parseInt(document.getElementById("postcode").value);
-  const slot = document.getElementById("slot").value;
+document.getElementById('placeOrderBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('placeOrderBtn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+  document.getElementById('processingNote').textContent = 'Creating payment session...';
 
-  const fee = checkDelivery();
-  if (!fee) return;
+  try {
+    // gather fields
+    const name = document.getElementById('fullName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const mobile = document.getElementById('mobile').value.trim();
+    const altPhone = document.getElementById('altPhone').value.trim();
+    const unit = document.getElementById('unit').value.trim();
+    const street = document.getElementById('street').value.trim();
+    const suburb = document.getElementById('suburb').value.trim();
+    const state = document.getElementById('state').value;
+    const postcode = document.getElementById('postcode').value.trim();
+    const gate = document.getElementById('gate').value.trim();
+    const instructions = document.getElementById('instructions').value.trim();
+    const leaveAtDoor = document.getElementById('leaveAtDoor').checked;
+    const callOnArrival = document.getElementById('callOnArrival').checked;
+    const slot = document.getElementById('deliverySlot').value;
+    const cardName = document.getElementById('cardName').value.trim();
+    const promo = document.getElementById('promo').value.trim();
 
-  const totalAmount = Math.round((subtotal + fee) * 100);
-
-  // Create payment intent
-  const res = await fetch("/api/create-payment-intent", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      amount: totalAmount,
-      trolley,
-      customer: { name, phone, postcode, deliveryFee: fee, slot }
-    })
-  });
-
-  const data = await res.json();
-
-  const result = await stripe.confirmCardPayment(data.clientSecret, {
-    payment_method: {
-      card: cardElement,
-      billing_details: { name }
+    // validation
+    if(!name||!mobile||!street||!suburb||!postcode||!slot||!cardName) {
+      alert('Please fill required fields: name, mobile, address, postcode, delivery slot, card name.');
+      btn.disabled = false; btn.textContent = 'Place Order & Pay'; document.getElementById('processingNote').textContent = ''; return;
     }
-  });
 
-  if (result.error) {
-    document.getElementById("card-error").innerText = result.error.message;
-    return;
-  }
+    // check serviceable
+    const fee = computeDeliveryFee(postcode);
+    if (fee === null) {
+      alert('Sorry we do not service your postcode.');
+      btn.disabled = false; btn.textContent = 'Place Order & Pay'; document.getElementById('processingNote').textContent = ''; return;
+    }
 
-  if (result.paymentIntent.status === "succeeded") {
-    const orderNo = "GGO-" + Math.floor(100000 + Math.random() * 900000);
-    document.getElementById("successMsg").innerText =
-      `Your order has been successful! Your order number is ${orderNo}.`;
+    const subtotal = Number(window.__GG_subtotal || 0);
+    const promoDiscount = Number(window.__GG_promo || 0);
+    const total = Math.max(0, subtotal + fee - promoDiscount);
 
-    // Save final order to Supabase
-    await supabase.from("orders").insert({
-      order_number: orderNo,
-      name,
-      phone,
-      postcode,
-      delivery_slot: slot,
-      items: trolley,
-      subtotal,
-      delivery_fee: fee,
-      total: subtotal + fee,
-      status: "Paid"
+    const amountCents = Math.round(total * 100);
+
+    // --- 1) call serverless create-payment-intent ---
+    const piResp = await fetch('/api/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        amount: amountCents,
+        trolley: trolley,
+        customer: {
+          name, email, mobile, altPhone, unit, street, suburb, state, postcode, gate, instructions, leaveAtDoor, callOnArrival, slot, promo
+        }
+      })
     });
 
-    localStorage.removeItem("trolley");
+    const piData = await piResp.json();
+    if (piData.error) throw new Error(piData.error || 'Failed creating payment intent.');
+
+    document.getElementById('processingNote').textContent = 'Confirming card payment...';
+
+    // --- 2) confirm card payment (Stripe) ---
+    const confirm = await stripe.confirmCardPayment(piData.clientSecret, {
+      payment_method: {
+        card,
+        billing_details: { name: cardName, email, phone: mobile, address: { line1: street, city: suburb, state, postal_code: postcode, country: 'AU' } }
+      }
+    });
+
+    if (confirm.error) {
+      // show error
+      document.getElementById('card-error').textContent = confirm.error.message || 'Payment failed';
+      btn.disabled = false; btn.textContent = 'Place Order & Pay'; document.getElementById('processingNote').textContent = '';
+      return;
+    }
+
+    // --- 3) Payment succeeded
+    if (confirm.paymentIntent && confirm.paymentIntent.status === 'succeeded') {
+      // simulate OTP being sent to mobile — for testing we display on-screen
+      const otp = Math.floor(100000 + Math.random()*900000).toString();
+      document.getElementById('otpBox').style.display = 'block';
+      document.getElementById('otpBox').textContent = `For testing: OTP sent to ${mobile} → ${otp} (this is a simulation)`;
+
+      // Save final order to Supabase (client-side, using anon key)
+      const orderNumber = 'GGO-' + Math.floor(100000 + Math.random()*900000);
+      const orderPayload = {
+        order_number: orderNumber,
+        stripe_payment_id: confirm.paymentIntent.id,
+        name, email, mobile, altPhone,
+        unit, street, suburb, state, postcode, gate,
+        instructions, leave_at_door: leaveAtDoor, call_on_arrival: callOnArrival,
+        delivery_slot: slot,
+        items: trolley,
+        subtotal, delivery_fee: fee, promo: promoDiscount, total,
+        status: 'Paid',
+        created_at: new Date().toISOString()
+      };
+
+      const { data: inserted, error: supErr } = await supabase
+        .from('orders')
+        .insert(orderPayload)
+        .select();
+
+      if (supErr) {
+        console.error('Supabase insert error', supErr);
+        // still continue — server already created order record earlier (server version)
+      }
+
+      // show success to customer
+      document.getElementById('orderSuccess').style.display = 'block';
+      document.getElementById('orderSuccess').textContent = `Your order has been successful. Your order number is ${orderNumber}. Thanks for your order.`;
+      // clear trolley
+      localStorage.removeItem('grocerygo_trolley');
+      // optionally redirect after short delay
+      setTimeout(()=> window.location.href = '/', 6000);
+    }
+
+  } catch (err) {
+    console.error('Checkout error:', err);
+    alert('Error: ' + (err.message || 'Unknown error'));
+    document.getElementById('processingNote').textContent = '';
+    document.getElementById('placeOrderBtn').disabled = false;
+    document.getElementById('placeOrderBtn').textContent = 'Place Order & Pay';
   }
 });
 </script>
-
 </body>
 </html>
