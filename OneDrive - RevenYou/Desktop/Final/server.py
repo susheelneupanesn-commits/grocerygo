@@ -5,7 +5,7 @@ import stripe
 import os
 
 # ⚠️ IMPORTANT: Replace with your actual Stripe Secret Key!
-stripe.api_key = os.getenv("sk_test_51SUX2KAmiKZAr3ZsMbzqoInpVR5IttKq4O5l0QP6ZUJQI9Ru01AnNl3ET3pcEP6NrQpGn2zw7iiSWaPWjtSvfzhp00g4X8HSOD")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # Set up the Flask application
 # static_folder='public' tells Flask where your HTML, CSS, JS files are
