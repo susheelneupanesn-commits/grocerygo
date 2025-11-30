@@ -1,3 +1,11 @@
+from flask import Flask, jsonify, request # Make sure these are the correct imports
+import os
+import stripe
+
+# 🎯 CRITICAL: MUST be named 'app' for Vercel
+app = Flask(__name__) 
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 import json
 import stripe
 import os
