@@ -3,24 +3,38 @@
     {
       "src": "server.py",
       "use": "@vercel/python"
+    },
+    // This build rule ensures static files are treated as assets.
+    // If your static files are not in a 'public' folder, Vercel needs to know they exist.
+    {
+      "src": "**/*.html",
+      "use": "@vercel/static-build"
+    },
+    {
+      "src": "**/*.css",
+      "use": "@vercel/static-build"
+    },
+    {
+      "src": "**/*.js",
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
-    // 1. Explicitly route the root (homepage) to your main product page
-    {
-      "src": "/",
-      "dest": "/store.html"
-    },
-    // 2. Explicitly route all static files (CSS, JS, images, and other HTML pages)
-    {
-      "src": "/(.*\\.(html|css|js|png|jpg|gif|svg))",
-      "dest": "/$1" 
-    },
-    // 3. Route for the API endpoint
+    // 1. Route for the API endpoint
     {
       "src": "/create-payment-intent",
       "dest": "server.py",
       "methods": ["POST"]
+    },
+    // 2. Route the root to your main product page
+    {
+      "src": "/",
+      "dest": "/store.html"
+    },
+    // 3. Serve all other static files (this covers CSS, JS, and your other HTML pages)
+    {
+      "src": "/(.*)",
+      "dest": "/$1" 
     }
   ]
 }
