@@ -1,27 +1,44 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-11-30" });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+
+// Delivery fee by distance (example postcode logic)
+function getDeliveryFee(postcode) {
+  const first10km = [4000, 4005, 4006, 4007, 4008]; // add your exact AU postcodes
+  const km10to20 = [4009, 4010, 4011]; 
+  const km20plus = [4012, 4013];
+
+  if (first10km.includes(Number(postcode))) return 10;
+  if (km10to20.includes(Number(postcode))) return 15;
+  if (km20plus.includes(Number(postcode))) return 20;
+  return 25; // default
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { amount, trolley, customer } = req.body;
+    const { trolley, customer } = req.body;
+    if (!trolley || !customer) return res.status(400).json({ error: "Missing required fields" });
 
-    if (!amount || !trolley || !customer) return res.status(400).json({ error: "Missing required fields" });
+    const subtotal = trolley.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const deliveryFee = getDeliveryFee(customer.postcode);
+    const grandTotal = subtotal + deliveryFee;
 
+    // Create Stripe Payment Intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,        // in cents
+      amount: Math.round(grandTotal * 100), // amount in cents
       currency: "aud",
       automatic_payment_methods: { enabled: true },
     });
 
+    // Generate order number
     const orderNumber = `GGO-${Math.floor(100000 + Math.random() * 900000)}`;
-    const subtotal = trolley.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-    const orderData = {
+    // Insert order into Supabase
+    const { error } = await supabase.from("orders").insert({
       stripe_payment_intent_id: paymentIntent.id,
       order_number: orderNumber,
       customer_name: customer.name,
@@ -29,22 +46,23 @@ export default async function handler(req, res) {
       customer_email: customer.email,
       customer_address: customer.address,
       postcode: customer.postcode,
-      delivery_date: customer.deliveryDate,
-      delivery_time: customer.deliveryTime,
-      delivery_fee: customer.deliveryFee,
+      delivery_fee: deliveryFee,
       subtotal,
-      grand_total: amount / 100,
+      grand_total: grandTotal,
       items: trolley,
       status: "Pending Payment",
       created_at: new Date().toISOString(),
-    };
+    });
 
-    const { error } = await supabase.from("orders").insert(orderData);
-    if (error) return res.status(500).json({ error: "Failed saving order in Supabase" });
+    if (error) return res.status(500).json({ error: "Supabase insert failed", details: error });
 
-    res.status(200).json({ clientSecret: paymentIntent.client_secret, orderNumber });
+    // For testing: generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000);
+
+    res.status(200).json({ clientSecret: paymentIntent.client_secret, orderNumber, otp });
+
   } catch (err) {
-    console.error(err);
+    console.error("Payment API error:", err);
     res.status(500).json({ error: err.message });
   }
 }
