@@ -51,3 +51,6 @@ def handler(request):
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"error": str(e)})
         }
+        # 🎯 CRITICAL: DELETE THIS BLOCK if it exists!
+# if __name__ == "__main__":
+#     app.run(debug=True)
