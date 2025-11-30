@@ -1,20 +1,59 @@
+// create-payment-intent.js
+import express from "express";
 import Stripe from "stripe";
+import admin from "firebase-admin";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const router = express.Router();
+const stripe = new Stripe("sk_test_YOUR_SECRET_KEY_HERE", { apiVersion: "2025-11-30" });
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+// Initialize Firebase Admin (Service Account Key JSON)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    }),
+  });
+}
 
+const db = admin.firestore();
+
+router.post("/create-payment-intent", async (req, res) => {
   try {
-    const { amount } = req.body;
+    const { amount, trolley, customer } = req.body;
 
+    if (!amount || !trolley || !customer) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // 1. Create Stripe Payment Intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount,
+      amount: amount,
       currency: "aud",
+      automatic_payment_methods: { enabled: true },
     });
 
-    res.status(200).json({ clientSecret: paymentIntent.client_secret });
+    // 2. Save order placeholder in Firestore
+    const orderNumber = Math.floor(100000 + Math.random() * 900000);
+    const orderData = {
+      orderId: paymentIntent.id,
+      orderNumber: `GGO-${orderNumber}`,
+      customer,
+      items: trolley.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
+      totals: { subtotal: trolley.reduce((sum, i) => sum + i.price * i.quantity, 0), deliveryFee: customer.deliveryFee, grandTotal: amount/100 },
+      status: "Pending Payment",
+      created: new Date().toISOString(),
+    };
+
+    await db.collection(`orders`).doc(paymentIntent.id).set(orderData);
+
+    res.json({ clientSecret: paymentIntent.client_secret });
+
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("Error creating payment intent:", err);
+    res.status(500).json({ error: err.message });
   }
-}
+});
+
+export default router;
