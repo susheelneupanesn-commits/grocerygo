@@ -18,6 +18,7 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app = express();
+// Vercel ignores this PORT, but it's used for local testing
 const PORT = process.env.PORT || 3000;
 
 // --- Middlewares ---
@@ -184,8 +185,16 @@ app.get('/api/get-orders', async (req, res) => {
 });
 
 
-// ------------------- START SERVER -------------------
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`Test Checkout at http://localhost:${PORT}/checkout.html`);
-});
+// ------------------- START SERVER (Vercel Fix) -------------------
+
+// Only run app.listen() locally for standard development
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`Test Checkout at http://localhost:${PORT}/checkout.html`);
+    });
+}
+
+// **CRITICAL VERCEL FIX:** Export the Express app instance. 
+// Vercel will wrap this export in its serverless function.
+module.exports = app;
