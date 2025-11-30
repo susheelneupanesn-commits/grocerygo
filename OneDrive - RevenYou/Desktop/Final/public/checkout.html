@@ -2,86 +2,139 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Checkout | GroceryGo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GroceryGo | Checkout</title>
 <script src="https://js.stripe.com/v3/"></script>
 <style>
-  body { font-family: Arial; padding: 20px; }
-  #card-element { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
-  #payment-message { color: green; margin-top: 10px; }
+body { font-family: Arial, sans-serif; background: #f7f8fa; margin: 0; padding: 20px; }
+.container { max-width: 800px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+label { display: block; margin-bottom: 5px; font-weight: 600; }
+input, select, textarea { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #d1d5db; }
+textarea { resize: vertical; height: 80px; }
+#card-element { padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; min-height: 50px; background: #fff; margin-bottom: 10px; }
+#priceSummary div { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.grandTotal { font-weight: bold; font-size: 1.25em; border-top: 1px dashed #c4c4c4; padding-top: 8px; margin-top: 10px; }
+.bottom-bar { display: flex; justify-content: space-between; gap: 15px; margin-top: 20px; }
+.bottom-bar button { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; flex: 1; background: #0072ce; color: #fff; font-weight: 600; }
+.bottom-bar button:disabled { background: #9ca3af; cursor: not-allowed; }
+#messageOverlay { display:none; position: fixed; inset:0; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index:1000; }
+#messageBox { padding: 30px; border-radius: 12px; font-size: 1.1em; font-weight: bold; color: #fff; text-align: center; max-width: 450px; }
+.message-success { background-color: #10b981; }
+.message-error { background-color: #ef4444; }
 </style>
 </head>
 <body>
-<h2>Checkout</h2>
+<div class="container">
+<h1>Checkout</h1>
 
-<form id="payment-form">
-  <label>Name</label><br>
-  <input type="text" id="name" required><br>
-  <label>Email</label><br>
-  <input type="email" id="email" required><br>
-  <label>Phone</label><br>
-  <input type="text" id="phone" required><br>
-  <label>Address</label><br>
-  <input type="text" id="address" required><br>
-  <label>Postcode</label><br>
-  <input type="text" id="postcode" required><br>
+<label>Full Name</label><input type="text" id="customerName" placeholder="John Doe">
 
-  <h3>Card Details</h3>
-  <div id="card-element"></div>
-  <button type="submit">Pay</button>
-</form>
+<label>Email</label><input type="email" id="customerEmail" placeholder="john@example.com">
+<label>Mobile Number</label><input type="text" id="customerMobile" placeholder="0412345678">
 
-<div id="payment-message"></div>
+<label>Delivery Address</label><input type="text" id="customerAddress" placeholder="123 Queen St">
+<label>Suburb</label><input type="text" id="customerSuburb" placeholder="Brisbane">
+<label>State</label>
+<select id="customerState">
+  <option value="QLD" selected>Queensland</option>
+  <option value="NSW">New South Wales</option>
+  <option value="VIC">Victoria</option>
+  <option value="WA">Western Australia</option>
+  <option value="SA">South Australia</option>
+  <option value="TAS">Tasmania</option>
+  <option value="NT">Northern Territory</option>
+  <option value="ACT">ACT</option>
+</select>
+<label>Postcode (For Delivery Fee)</label>
+<input type="text" id="customerPostcode" placeholder="4000">
+<small id="postcodeMessage"></small>
+
+<label>Delivery Slot</label>
+<select id="deliverySlot"><option value="">Choose your time slot</option></select>
+
+<div id="priceSummary">
+  <div>Subtotal: <span id="subtotalAmount">$0.00</span></div>
+  <div>Delivery Fee: <span id="deliveryFee">$0.00</span></div>
+  <div class="grandTotal">Grand Total: <span id="grandTotalAmount">$0.00</span></div>
+</div>
+
+<h2>Payment Details</h2>
+<label>Cardholder Name</label><input type="text" id="cardName" placeholder="John Doe">
+<label>Card Details</label><div id="card-element"></div>
+
+<label>Special Instructions</label><textarea id="specialInstructions" placeholder="E.g., Leave at front door"></textarea>
+
+<div class="bottom-bar">
+  <button id="backTrolley">◀️ Back to Trolley</button>
+  <button id="placeOrder">Place Order & Pay</button>
+</div>
+</div>
+
+<div id="messageOverlay"><div id="messageBox"></div></div>
 
 <script>
+const trolley = JSON.parse(localStorage.getItem("grocerygo_trolley") || "[]");
+if (!trolley.length) { alert("Trolley is empty"); window.location.href="/"; }
+
+let subtotal = trolley.reduce((sum,i)=>sum+(i.price||0)*i.quantity,0);
+let deliveryFee = 0;
+function formatCurrency(a){return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(a);}
+function updateTotals(){document.getElementById("subtotalAmount").innerText=formatCurrency(subtotal);document.getElementById("deliveryFee").innerText=formatCurrency(deliveryFee);document.getElementById("grandTotalAmount").innerText=formatCurrency(subtotal+deliveryFee);}
+updateTotals();
+
+const SERVICE_AREAS = {"4000":10,"4005":10,"4006":10,"4007":10,"4008":10,"4009":10,"4010":10,"4011":10,"4012":10,"4013":10,"4014":10,"4017":15,"4018":10,"4025":15,"4029":15,"4030":15,"4031":15,"4032":15,"4034":15,"4035":15,"4036":15,"4051":10,"4053":10,"4054":10,"4055":10,"4059":10,"4060":10,"4061":10,"4064":10,"4065":10,"4066":10,"4067":10,"4068":10,"4069":10,"4070":15,"4072":15,"4073":15,"4074":15,"4075":15,"4076":15,"4077":15,"4078":15,"4101":15,"4102":15,"4103":15,"4104":15,"4105":15,"4106":15,"4107":15,"4108":15,"4109":15,"4110":15,"4111":15,"4112":15,"4113":15,"4114":15,"4115":15,"4116":15,"4117":15,"4118":15,"4119":15,"4120":15,"4121":15,"4122":15,"4123":15,"4124":15,"4125":15,"4127":15,"4128":15,"4129":15,"4130":15,"4132":15,"4133":15,"4151":15,"4152":15,"4153":15,"4154":15,"4155":15,"4156":15,"4157":15,"4158":15,"4159":15,"4160":15,"4161":15,"4163":15,"4164":15,"4165":15,"4169":15,"4170":15,"4171":15,"4172":15,"4173":15,"4174":15,"4178":15,"4179":15,"4183":20,"4184":20,"4205":20,"4207":20,"4280":20,"4285":20,"4300":20,"4301":20,"4303":20,"4304":20,"4305":20,"4306":20,"4307":20,"4308":20,"4311":20,"4340":20,"4346":20,"4500":20,"4501":20,"4502":20,"4503":20,"4504":20,"4505":20,"4506":20,"4507":20,"4508":20,"4509":20,"4510":20,"4511":20,"4512":20,"4513":20,"4514":20,"4515":20,"4516":20,"4517":20,"4518":20,"4519":20,"4520":20,"4521":20};
+const MAX_FEE = 20;
+document.getElementById("customerPostcode").addEventListener("input",e=>{
+let p=e.target.value.trim();let msg=document.getElementById("postcodeMessage");if(p.length===4&&SERVICE_AREAS[p]){deliveryFee=SERVICE_AREAS[p];msg.innerText=`Delivery Fee: ${formatCurrency(deliveryFee)}`;updateTotals();}else{deliveryFee=0;msg.innerText="Postcode not serviceable";updateTotals();}});
+
 const stripe = Stripe("pk_test_51SUX2KAmiKZAr3ZsMbzqoInpVR5IttKq4O5l0QP6ZUJQI9Ru01AnNl3ET3pcEP6NrQpGn2zw7iiSWaPWjtSvfzhp00g4X8HSOD");
 const elements = stripe.elements();
-const card = elements.create("card");
+const card = elements.create("card",{hidePostalCode:true});
 card.mount("#card-element");
 
-const form = document.getElementById("payment-form");
-const messageEl = document.getElementById("payment-message");
+document.getElementById("backTrolley").onclick = ()=>window.location.href="/";
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+document.getElementById("placeOrder").onclick=async()=>{
+  const name=document.getElementById("customerName").value.trim();
+  const email=document.getElementById("customerEmail").value.trim();
+  const phone=document.getElementById("customerMobile").value.trim();
+  const address=document.getElementById("customerAddress").value.trim();
+  const suburb=document.getElementById("customerSuburb").value.trim();
+  const state=document.getElementById("customerState").value;
+  const postcode=document.getElementById("customerPostcode").value.trim();
+  const slot=document.getElementById("deliverySlot").value;
+  const cardName=document.getElementById("cardName").value.trim();
+  const special=document.getElementById("specialInstructions").value.trim();
 
-  const customer = {
-    name: document.getElementById("name").value,
-    email: document.getElementById("email").value,
-    phone: document.getElementById("phone").value,
-    address: document.getElementById("address").value,
-    postcode: document.getElementById("postcode").value,
-    deliveryFee: 5.00,       // example
-    deliveryDate: new Date().toISOString().split('T')[0],
-    deliveryTime: "ASAP"
+  if(!name||!email||!phone||!address||!suburb||!state||!postcode||!slot||!cardName){
+    alert("Fill all required fields"); return;
+  }
+
+  const amountInCents=Math.round((subtotal+deliveryFee)*100);
+
+  const orderPayload={
+    amount:amountInCents,
+    trolley:trolley,
+    customer:{name,email,phone,address,suburb,state,postcode,slot,deliveryFee,special}
   };
 
-  const trolley = [
-    { name: "Sample Product", quantity: 1, price: 1000 }
-  ];
+  try{
+    const res=await fetch("/api/create-payment-intent",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(orderPayload)});
+    const data=await res.json();
+    if(!data.clientSecret) throw new Error("No clientSecret returned");
 
-  const amount = trolley.reduce((sum, i) => sum + i.price * i.quantity, 0) + customer.deliveryFee*100;
+    const paymentResult=await stripe.confirmCardPayment(data.clientSecret,{
+      payment_method:{card, billing_details:{name:cardName,email:email,phone:phone,address:{line1:address,city:suburb,state:state,postal_code:postcode,country:'AU'}}}
+    });
 
-  // Create PaymentIntent
-  const res = await fetch("/api/create-payment-intent", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount, trolley, customer })
-  });
-  const data = await res.json();
-
-  const { clientSecret } = data;
-  const result = await stripe.confirmCardPayment(clientSecret, {
-    payment_method: { card, billing_details: { name: customer.name, email: customer.email } }
-  });
-
-  if (result.error) {
-    messageEl.textContent = result.error.message;
-    messageEl.style.color = "red";
-  } else if (result.paymentIntent.status === "succeeded") {
-    messageEl.textContent = `Payment successful! Order #${data.orderNumber}`;
-  }
-});
+    if(paymentResult.error){alert(paymentResult.error.message);return;}
+    if(paymentResult.paymentIntent.status==="succeeded"){
+      alert(`Payment succeeded! Order No: ${data.orderNumber}`);
+      localStorage.removeItem("grocerygo_trolley");
+      window.location.href="/";
+    }
+  }catch(err){console.error(err);alert(err.message);}
+};
 </script>
 </body>
 </html>
