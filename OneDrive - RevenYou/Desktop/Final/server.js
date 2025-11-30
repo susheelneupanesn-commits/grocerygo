@@ -61,7 +61,6 @@ app.post('/api/stripe-webhook', bodyParser.raw({ type: 'application/json' }), as
         const { error } = await supabase
             .from("orders")
             .update({ status: "Successful", stripe_status: "succeeded" })
-            // *** FIX: Changed "stripe_payment_id" to "stripe_id" ***
             .eq("stripe_id", paymentIntentId); 
 
         if (error) {
@@ -77,7 +76,6 @@ app.post('/api/stripe-webhook', bodyParser.raw({ type: 'application/json' }), as
         await supabase
             .from("orders")
             .update({ status: "Failed", stripe_status: "failed" })
-            // *** FIX: Changed "stripe_payment_id" to "stripe_id" ***
             .eq("stripe_id", paymentIntentId);
     }
 
@@ -113,37 +111,43 @@ app.post('/api/create-payment-intent', async (req, res) => {
             metadata: { customer_name: customer.name, email: customer.email }
         });
         
-       1. Call the Supabase function to get the next serial number
-const { data: serialNumber, error: serialError } = await supabase
-    .rpc('get_next_serial_number');
+        // --- START SERIAL NUMBER GENERATION ---
+        let orderNumber; // Declared here for scope access
 
-if (serialError || !serialNumber) {
-    console.error('Supabase serial number error:', serialError || 'No serial number returned');
-    // Fallback to random number for resilience in case Supabase fails
-    const orderNumber = `GGO-ERR-${Math.floor(10000 + Math.random() * 90000)}`;
-} else {
-    // 2. Format the number with the prefix (e.g., GGO-1, GGO-2)
-    const orderNumber = `GGO-${serialNumber}`;
-}
+        // Call the Supabase function to get the next serial number
+        const { data: serialResult, error: serialError } = await supabase
+            .rpc('get_next_serial_number');
+
+        if (serialError || !serialResult) {
+            console.error('Supabase serial number error:', serialError || 'No serial number returned');
+            // Fallback to random number for resilience
+            orderNumber = `GGO-ERR-${Math.floor(10000 + Math.random() * 90000)}`;
+        } else {
+            const serialNumber = serialResult;
+            // Format the number with leading zeros (e.g., 1 -> 0001, 10 -> 0010)
+            const paddedNumber = String(serialNumber).padStart(4, '0');
+            orderNumber = `GGO-${paddedNumber}`;
+        }
+        // --- END SERIAL NUMBER GENERATION ---
 
         // FIXED Insert order into Supabase with PENDING status
-const { error } = await supabase.from('orders').insert([{
-    order_number: orderNumber,
-    customer_name: customer.name,
-    email: customer.email,
-    phone: customer.mobile, // FIXED: Maps frontend 'mobile' to SQL 'phone'
-    address_line1: customer.address, // FIXED: Maps frontend 'address' to SQL 'address_line1'
-    address_line2: null, // ADDED: Set to null as it's not sent by the frontend
-    suburb: customer.suburb,
-    postcode: customer.postcode,
-    state: customer.state,
-    country: 'Australia', // ADDED: Set to default value from SQL schema
-    items: JSON.stringify(trolley),
-    delivery_fee: deliveryFee, 
-    total_amount: grandTotal, 
-    stripe_id: paymentIntent.id, // CORRECT: Uses 'stripe_id' for insertion
-    status: 'pending',
-}]);
+        const { error } = await supabase.from('orders').insert([{
+            order_number: orderNumber,
+            customer_name: customer.name,
+            email: customer.email,
+            phone: customer.mobile, 
+            address_line1: customer.address, 
+            address_line2: null, 
+            suburb: customer.suburb,
+            postcode: customer.postcode,
+            state: customer.state,
+            country: 'Australia', 
+            items: JSON.stringify(trolley),
+            delivery_fee: deliveryFee, 
+            total_amount: grandTotal, 
+            stripe_id: paymentIntent.id, 
+            status: 'pending',
+        }]);
 
         if (error) {
             console.error('Supabase insert error:', error);
