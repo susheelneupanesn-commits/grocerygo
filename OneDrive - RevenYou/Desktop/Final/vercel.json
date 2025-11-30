@@ -5,15 +5,15 @@
       "use": "@vercel/python"
     },
     {
-      "src": "**/*.html",
+      "src": "public/store.html",
       "use": "@vercel/static-build"
     },
     {
-      "src": "**/*.css",
+      "src": "public/**/*.css",
       "use": "@vercel/static-build"
     },
     {
-      "src": "**/*.js",
+      "src": "public/**/*.js",
       "use": "@vercel/static-build"
     }
   ],
@@ -25,11 +25,11 @@
     },
     {
       "src": "/",
-      "dest": "/store.html"
+      "dest": "/public/store.html" 
     },
     {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/public/$1" 
     }
   ]
 }
