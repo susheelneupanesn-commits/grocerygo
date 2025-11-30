@@ -113,7 +113,18 @@ app.post('/api/create-payment-intent', async (req, res) => {
             metadata: { customer_name: customer.name, email: customer.email }
         });
         
-        const orderNumber = `GGO-${Math.floor(100000 + Math.random() * 900000)}`;
+       1. Call the Supabase function to get the next serial number
+const { data: serialNumber, error: serialError } = await supabase
+    .rpc('get_next_serial_number');
+
+if (serialError || !serialNumber) {
+    console.error('Supabase serial number error:', serialError || 'No serial number returned');
+    // Fallback to random number for resilience in case Supabase fails
+    const orderNumber = `GGO-ERR-${Math.floor(10000 + Math.random() * 90000)}`;
+} else {
+    // 2. Format the number with the prefix (e.g., GGO-1, GGO-2)
+    const orderNumber = `GGO-${serialNumber}`;
+}
 
         // FIXED Insert order into Supabase with PENDING status
 const { error } = await supabase.from('orders').insert([{
