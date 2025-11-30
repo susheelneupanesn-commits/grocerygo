@@ -5,26 +5,179 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GroceryGo | Checkout</title>
 <script src="https://js.stripe.com/v3/"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+// --- Supabase Setup ---
+const SUPABASE_URL = 'https://gikdqaxdqfmzdvolkxbn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdpa2RxYXhkcWZtemR2b2xreGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyOTQwNDIsImV4cCI6MjA3Nzg3MDA0Mn0.pJ-9KfCxV7YT5loiURW14xRmf72s1EZRFRh4iKGnQis';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- Stripe Setup ---
+const stripe = Stripe('pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l');
+const elements = stripe.elements();
+const card = elements.create('card', { hidePostalCode: true });
+card.mount('#card-element');
+
+// --- Trolley and Pricing ---
+const trolley = JSON.parse(localStorage.getItem('grocerygo_trolley') || '[]');
+if (!trolley.length) {
+  alert('Your trolley is empty. Redirecting...');
+  window.location.href = '/index.html';
+}
+
+let subtotal = trolley.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+let deliveryFee = 0;
+const MAX_FEE = 20;
+const SERVICE_AREAS = {
+  "4000": 10, "4001": 10, "4005": 10, "4006": 10, "4010": 10,
+  "4031": 15, "4034": 15, "4075": 15, "4101": 15, "4120": 15,
+  "4151": 15, "4017": 15,
+  "4207": 20, "4300": 20, "4305": 20, "4500": 20
+};
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amount);
+}
+
+function calculateDeliveryFee(postcode) {
+  postcode = postcode.trim();
+  return SERVICE_AREAS[postcode] || 0;
+}
+
+function updateTotals() {
+  const grandTotal = subtotal + deliveryFee;
+  document.getElementById('subtotalAmount').textContent = formatCurrency(subtotal);
+  document.getElementById('deliveryFee').textContent = formatCurrency(deliveryFee);
+  document.getElementById('grandTotalAmount').textContent = formatCurrency(grandTotal);
+}
+
+// --- Postcode input ---
+document.getElementById('customerPostcode').addEventListener('input', (e) => {
+  const postcode = e.target.value.trim();
+  const msg = document.getElementById('postcodeMessage');
+  if (postcode.length === 4 && !isNaN(postcode)) {
+    deliveryFee = calculateDeliveryFee(postcode);
+    if (deliveryFee === 0) {
+      msg.textContent = `❌ Delivery not available for ${postcode}`;
+      msg.style.color = '#ef4444';
+    } else {
+      msg.textContent = `✅ Delivery fee: ${formatCurrency(deliveryFee)}`;
+      msg.style.color = '#10b981';
+    }
+  } else {
+    deliveryFee = 0;
+    msg.textContent = '';
+  }
+  updateTotals();
+});
+
+// --- Place Order ---
+document.getElementById('placeOrder').addEventListener('click', async () => {
+  const name = document.getElementById('customerName').value.trim();
+  const email = document.getElementById('customerEmail').value.trim();
+  const phone = document.getElementById('customerMobile').value.trim();
+  const address = document.getElementById('customerAddress').value.trim();
+  const suburb = document.getElementById('customerSuburb').value.trim();
+  const state = document.getElementById('customerState').value;
+  const postcode = document.getElementById('customerPostcode').value.trim();
+  const slot = document.getElementById('deliverySlot').value;
+  const cardName = document.getElementById('cardName').value.trim();
+  const special = document.getElementById('specialInstructions').value.trim();
+
+  if (!name || !email || !phone || !address || !suburb || !state || !postcode || !slot || !cardName) {
+    alert('Please fill all required fields and select a delivery slot.');
+    return;
+  }
+
+  deliveryFee = calculateDeliveryFee(postcode);
+  if (deliveryFee === 0) {
+    alert('Delivery not available in your area.');
+    return;
+  }
+
+  const finalAmount = subtotal + deliveryFee;
+  const amountInCents = Math.round(finalAmount * 100);
+
+  // --- Create PaymentIntent via Supabase function ---
+  try {
+    const resp = await fetch('/api/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: amountInCents })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+
+    const result = await stripe.confirmCardPayment(data.clientSecret, {
+      payment_method: {
+        card: card,
+        billing_details: { name: cardName, email, phone, address: { line1: address, city: suburb, state, postal_code: postcode, country: 'AU' } }
+      }
+    });
+
+    if (result.error) {
+      alert(`Payment failed: ${result.error.message}`);
+      return;
+    }
+
+    if (result.paymentIntent.status === 'succeeded') {
+      const orderNumber = Math.floor(100000 + Math.random() * 900000);
+      await supabase.from('orders').insert([{
+        order_number: `GGO-${orderNumber}`,
+        customer_name: name,
+        email, phone, address, suburb, state, postcode, slot, special,
+        items: trolley,
+        subtotal, delivery_fee: deliveryFee, total: finalAmount,
+        payment_id: result.paymentIntent.id,
+        status: 'Processing'
+      }]);
+      localStorage.removeItem('grocerygo_trolley');
+      alert(`✅ Payment successful! Your order no: GGO-${orderNumber}`);
+      window.location.href = '/index.html';
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Error processing payment. Check console.');
+  }
+});
+
+// --- Populate Delivery Slots ---
+const deliverySlotSelect = document.getElementById('deliverySlot');
+const minHours = 8;
+for (let i = 0; i < 7; i++) {
+  const d = new Date();
+  d.setDate(d.getDate() + i);
+  const dayStr = d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+  const slots = [{ start: 10, label: '10am-2pm' }, { start: 14, label: '2pm-6pm' }];
+  slots.forEach(slot => {
+    const slotTime = new Date(d);
+    slotTime.setHours(slot.start,0,0,0);
+    const cutoff = new Date();
+    cutoff.setHours(cutoff.getHours() + minHours);
+    if (slotTime > cutoff) {
+      const opt = document.createElement('option');
+      opt.value = `${dayStr} ${slot.label}`;
+      opt.textContent = `${dayStr} ${slot.label}`;
+      deliverySlotSelect.appendChild(opt);
+    }
+  });
+}
+
+// Initial totals update
+updateTotals();
+</script>
+
 <style>
-body { font-family: Arial, sans-serif; background:#f7f8fa; margin:0; padding:20px; }
-.container { max-width:800px; margin:0 auto; background:#fff; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);}
-label { font-weight:600; margin-bottom:4px; display:block;}
-input, select, textarea { width:100%; padding:12px; margin-bottom:12px; border-radius:8px; border:1px solid #d1d5db; }
-#card-element { padding:12px 10px; border:1px solid #d1d5db; border-radius:8px; min-height:50px; background:#fff; margin-bottom:10px; display:flex; align-items:center;}
-.bottom-bar { display:flex; justify-content:space-between; gap:15px; margin-top:20px;}
-.bottom-bar button { flex:1; padding:12px; border:none; border-radius:8px; font-weight:600; cursor:pointer; background:#0072ce; color:white;}
-.bottom-bar button:hover:not(:disabled) { background:#005fa3;}
-.bottom-bar button:disabled { background:#9ca3af; cursor:not-allowed;}
-#backTrolley { background:#6b7280;}
-#backTrolley:hover { background:#4b5563;}
-#messageOverlay { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index:1000;}
-#messageBox { padding:30px 25px; border-radius:12px; font-size:1.1em; font-weight:bold; color:white; text-align:center; max-width:450px; box-shadow:0 10px 25px rgba(0,0,0,0.3);}
-.message-success { background-color:#10b981; }
-.message-error { background-color:#ef4444; }
-#priceSummary { padding:15px; background:#eef2ff; border-radius:8px; margin-top:10px;}
-#priceSummary div { display:flex; justify-content:space-between; margin-bottom:6px;}
-#priceSummary .grandTotal { font-weight:bold; font-size:1.25em; margin-top:10px; padding-top:8px; border-top:1px dashed #c4c4c4;}
+body { font-family: Arial, sans-serif; background: #f7f8fa; margin:0; padding:20px; }
+.container { background:#fff; padding:20px; max-width:700px; margin:auto; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+input, select, textarea { width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px; }
+button { padding:12px 20px; border:none; background:#0072ce; color:#fff; border-radius:8px; cursor:pointer; font-weight:600; }
+button:hover { background:#005fa3; }
+#card-element { border:1px solid #ccc; padding:12px; border-radius:8px; margin-bottom:10px; }
+#priceSummary { padding:10px; background:#eef2ff; border-radius:8px; margin-bottom:10px; }
+#priceSummary div { display:flex; justify-content:space-between; margin-bottom:4px; }
+#grandTotalAmount { font-weight:bold; }
 </style>
 </head>
 <body>
@@ -33,129 +186,39 @@ input, select, textarea { width:100%; padding:12px; margin-bottom:12px; border-r
 
 <label>Full Name</label><input type="text" id="customerName" placeholder="John Doe">
 <label>Email</label><input type="email" id="customerEmail" placeholder="john@example.com">
-<label>Mobile Number</label><input type="text" id="customerMobile" placeholder="0412345678">
-<label>Delivery Address</label><input type="text" id="customerAddress" placeholder="123 Queen St">
+<label>Mobile</label><input type="text" id="customerMobile" placeholder="0412345678">
+<label>Address</label><input type="text" id="customerAddress" placeholder="123 Queen St">
 <label>Suburb</label><input type="text" id="customerSuburb" placeholder="Brisbane">
 <label>State</label>
 <select id="customerState">
-<option value="QLD" selected>Queensland</option>
-<option value="NSW">New South Wales</option>
-<option value="VIC">Victoria</option>
-<option value="WA">Western Australia</option>
-<option value="SA">South Australia</option>
-<option value="TAS">Tasmania</option>
-<option value="NT">Northern Territory</option>
-<option value="ACT">ACT</option>
+  <option value="QLD" selected>Queensland</option>
+  <option value="NSW">New South Wales</option>
+  <option value="VIC">Victoria</option>
+  <option value="WA">Western Australia</option>
+  <option value="SA">South Australia</option>
+  <option value="TAS">Tasmania</option>
+  <option value="NT">Northern Territory</option>
+  <option value="ACT">ACT</option>
 </select>
 <label>Postcode</label><input type="text" id="customerPostcode" placeholder="4000">
-<small id="postcodeMessage" style="display:block;margin-bottom:12px;"></small>
-<label>Select delivery time</label>
-<select id="deliverySlot"><option value="">Choose slot</option></select>
+<small id="postcodeMessage"></small>
+
+<label>Delivery Slot</label>
+<select id="deliverySlot"><option value="">Select Slot</option></select>
 
 <div id="priceSummary">
-  <div>Subtotal: <span id="subtotalAmount">$0.00</span></div>
-  <div>Delivery Fee: <span id="deliveryFee">$0.00</span></div>
-  <div class="grandTotal">Grand Total: <span id="grandTotalAmount">$0.00</span></div>
+  <div>Subtotal <span id="subtotalAmount">$0.00</span></div>
+  <div>Delivery Fee <span id="deliveryFee">$0.00</span></div>
+  <div>Total <span id="grandTotalAmount">$0.00</span></div>
 </div>
 
 <h2>Payment Details</h2>
 <label>Cardholder Name</label><input type="text" id="cardName" placeholder="John Doe">
 <label>Card Details</label><div id="card-element"></div>
-<label>Special Instructions</label><textarea id="specialInstructions" placeholder="Leave at front door"></textarea>
 
-<div class="bottom-bar">
-<button id="backTrolley">◀️ Back to Trolley</button>
+<label>Special Instructions</label><textarea id="specialInstructions" placeholder="Leave at door"></textarea>
+
 <button id="placeOrder">Place Order & Pay</button>
 </div>
-</div>
-
-<div id="messageOverlay"><div id="messageBox"></div></div>
-
-<script>
-const supabaseUrl = "https://gikdqaxdqfmzdvolkxbn.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdpa2RxYXhkcWZtemR2b2...";
-const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
-
-const trolley = JSON.parse(localStorage.getItem("grocerygo_trolley")||"[]");
-if(!trolley.length){alert("Trolley empty"); window.location.href="/index.html";}
-
-let subtotal = trolley.reduce((s,i)=>s+(i.price||0)*i.quantity,0);
-let deliveryFee = 0;
-
-function formatCurrency(a){return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(a);}
-function updateTotals(){const total=subtotal+deliveryFee; document.getElementById("subtotalAmount").innerText=formatCurrency(subtotal);document.getElementById("deliveryFee").innerText=formatCurrency(deliveryFee);document.getElementById("grandTotalAmount").innerText=formatCurrency(total);}
-updateTotals();
-
-const SERVICE_AREAS={"4000":10,"4005":10,"4006":10,"4010":10,"4031":15,"4075":15,"4101":15,"4120":15,"4151":15,"4017":15,"4500":20,"4207":20,"4300":20,"4305":20};
-const MAX_FEE=20; const NOT_SERVICEABLE_FEE=MAX_FEE+1;
-function calculateDeliveryFee(p){p=String(p).trim();return SERVICE_AREAS[p]||NOT_SERVICEABLE_FEE;}
-
-document.getElementById("customerPostcode").oninput=(e)=>{
-  const p=e.target.value.trim();
-  const msg=document.getElementById("postcodeMessage");
-  if(p.length===4&&!isNaN(p)){
-    deliveryFee=calculateDeliveryFee(p);
-    if(deliveryFee>MAX_FEE){msg.innerText=`❌ Not available in ${p}`; msg.style.color="#ef4444"; deliveryFee=0;}
-    else{msg.innerText=`✅ Delivery fee: ${formatCurrency(deliveryFee)}`; msg.style.color="#10b981";}
-  } else {msg.innerText=""; deliveryFee=0;}
-  updateTotals();
-};
-
-const deliverySlotSelect = document.getElementById("deliverySlot");
-const cutoffTime = new Date(); cutoffTime.setHours(cutoffTime.getHours()+8);
-for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()+i);["10am–2pm","2pm–6pm"].forEach(l=>{const slotTime=new Date(d);slotTime.setHours(l.startsWith("10")?10:14,0,0,0);if(slotTime>cutoffTime){const opt=document.createElement("option");opt.value=`${d.toDateString()} ${l}`;opt.textContent=`${d.toDateString()} ${l}`;deliverySlotSelect.appendChild(opt);}})}
-
-const stripe=Stripe("pk_test_51SUX2KAmiKZAr3Zsst3DLkjb2baO00udZQmzHBzqTqrZKJHoUM5g2WjUZmQVJdWNYBcq6KdcHIoedSOchASoCuTr00Ivou7q1b");
-const elements=stripe.elements();
-const card=elements.create("card",{hidePostalCode:true,style:{base:{fontSize:'16px',fontFamily:'Arial, sans-serif','::placeholder':{color:'#aab7c4'}}}});
-card.mount("#card-element");
-
-document.getElementById("backTrolley").onclick=()=>window.location.href="/index.html";
-
-document.getElementById("placeOrder").onclick=async()=>{
-const name=document.getElementById("customerName").value.trim();
-const email=document.getElementById("customerEmail").value.trim();
-const phone=document.getElementById("customerMobile").value.trim();
-const address=document.getElementById("customerAddress").value.trim();
-const suburb=document.getElementById("customerSuburb").value.trim();
-const state=document.getElementById("customerState").value;
-const postcode=document.getElementById("customerPostcode").value.trim();
-const slot=document.getElementById("deliverySlot").value;
-const cardName=document.getElementById("cardName").value.trim();
-const special=document.getElementById("specialInstructions").value.trim();
-if(!name||!email||!phone||!address||!suburb||!state||!postcode||!slot||!cardName){alert("Fill all fields"); return;}
-deliveryFee=calculateDeliveryFee(postcode);
-if(deliveryFee>MAX_FEE){alert(`Delivery not available for ${postcode}`); return;}
-const finalTotal=subtotal+deliveryFee; const amountCents=Math.round(finalTotal*100);
-
-const orderButton=document.getElementById("placeOrder"); orderButton.disabled=true; orderButton.textContent="Processing...";
-
-try{
-  const response=await fetch("/create-payment-intent",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({amount:amountCents,trolley,customer:{name,email,phone,address,suburb,state,postcode,slot,special,deliveryFee}})});
-  const data=await response.json(); if(data.error)throw new Error(data.error);
-
-  const result=await stripe.confirmCardPayment(data.clientSecret,{payment_method:{card, billing_details:{name:cardName,email,phone,address:{line1:address,city:suburb,state,state,postal_code:postcode,country:'AU'}}}});
-
-  if(result.error){alert(`Payment failed: ${result.error.message}`); orderButton.disabled=false; orderButton.textContent="Place Order & Pay"; return;}
-
-  if(result.paymentIntent.status==="succeeded"){
-    const orderNumber=Math.floor(100000+Math.random()*900000);
-    const orderData={order_id:result.paymentIntent.id,order_number:`GGO-${orderNumber}`,customer:{name,email,phone,address,suburb,state,postcode,slot,special},items:trolley,totals:{subtotal,deliveryFee,grandTotal:finalTotal},status:'Processing',created:new Date().toISOString()};
-    await supabase.from("orders").insert([orderData]);
-
-    let countdown=5;
-    const msgBox=document.getElementById("messageBox");
-    msgBox.className="message-success";
-    const overlay=document.getElementById("messageOverlay");
-    overlay.style.display="flex";
-    const interval=setInterval(()=>{
-      countdown--; msgBox.innerHTML=`✅ Payment Successful!<br>Order no: GGO-${orderNumber}<br>Redirecting in ${countdown}...`;
-      if(countdown<=0){clearInterval(interval); localStorage.removeItem("grocerygo_trolley"); window.location.href="/index.html";}
-    },1000);
-  }
-
-}catch(err){alert(err.message); orderButton.disabled=false; orderButton.textContent="Place Order & Pay";}
-};
-</script>
 </body>
 </html>
