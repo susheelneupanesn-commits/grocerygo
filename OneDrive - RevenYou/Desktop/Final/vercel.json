@@ -13,7 +13,11 @@
     },
     {
       "src": "/(.*)",
-      "dest": "public/$1"
+      "dest": "/$1" // <--- REMOVED "public"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html" // <--- ADDED explicit root route
     }
   ]
 }
