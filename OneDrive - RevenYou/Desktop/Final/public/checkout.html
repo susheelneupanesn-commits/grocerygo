@@ -1,224 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GroceryGo | Checkout</title>
-<script src="https://js.stripe.com/v3/"></script>
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout</title>
 
-// --- Supabase Setup ---
-const SUPABASE_URL = 'https://gikdqaxdqfmzdvolkxbn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdpa2RxYXhkcWZtemR2b2xreGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyOTQwNDIsImV4cCI6MjA3Nzg3MDA0Mn0.pJ-9KfCxV7YT5loiURW14xRmf72s1EZRFRh4iKGnQis';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; }
+    .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+    input, select { width: 100%; padding: 10px; margin: 8px 0; }
+    #card-element { padding: 12px; border: 1px solid #ccc; border-radius: 6px; background: white; }
+    button { width: 100%; padding: 12px; background: black; color: white; border: none; border-radius: 6px; }
+    .hidden { display: none; }
+  </style>
 
-// --- Stripe Setup ---
-const stripe = Stripe('pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l');
-const elements = stripe.elements();
-const card = elements.create('card', { hidePostalCode: true });
-card.mount('#card-element');
+  <!-- Stripe -->
+  <script src="https://js.stripe.com/v3/"></script>
 
-// --- Trolley and Pricing ---
-const trolley = JSON.parse(localStorage.getItem('grocerygo_trolley') || '[]');
-if (!trolley.length) {
-  alert('Your trolley is empty. Redirecting...');
-  window.location.href = '/index.html';
-}
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-let subtotal = trolley.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-let deliveryFee = 0;
-const MAX_FEE = 20;
-const SERVICE_AREAS = {
-  "4000": 10, "4001": 10, "4005": 10, "4006": 10, "4010": 10,
-  "4031": 15, "4034": 15, "4075": 15, "4101": 15, "4120": 15,
-  "4151": 15, "4017": 15,
-  "4207": 20, "4300": 20, "4305": 20, "4500": 20
-};
-
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amount);
-}
-
-function calculateDeliveryFee(postcode) {
-  postcode = postcode.trim();
-  return SERVICE_AREAS[postcode] || 0;
-}
-
-function updateTotals() {
-  const grandTotal = subtotal + deliveryFee;
-  document.getElementById('subtotalAmount').textContent = formatCurrency(subtotal);
-  document.getElementById('deliveryFee').textContent = formatCurrency(deliveryFee);
-  document.getElementById('grandTotalAmount').textContent = formatCurrency(grandTotal);
-}
-
-// --- Postcode input ---
-document.getElementById('customerPostcode').addEventListener('input', (e) => {
-  const postcode = e.target.value.trim();
-  const msg = document.getElementById('postcodeMessage');
-  if (postcode.length === 4 && !isNaN(postcode)) {
-    deliveryFee = calculateDeliveryFee(postcode);
-    if (deliveryFee === 0) {
-      msg.textContent = `❌ Delivery not available for ${postcode}`;
-      msg.style.color = '#ef4444';
-    } else {
-      msg.textContent = `✅ Delivery fee: ${formatCurrency(deliveryFee)}`;
-      msg.style.color = '#10b981';
-    }
-  } else {
-    deliveryFee = 0;
-    msg.textContent = '';
-  }
-  updateTotals();
-});
-
-// --- Place Order ---
-document.getElementById('placeOrder').addEventListener('click', async () => {
-  const name = document.getElementById('customerName').value.trim();
-  const email = document.getElementById('customerEmail').value.trim();
-  const phone = document.getElementById('customerMobile').value.trim();
-  const address = document.getElementById('customerAddress').value.trim();
-  const suburb = document.getElementById('customerSuburb').value.trim();
-  const state = document.getElementById('customerState').value;
-  const postcode = document.getElementById('customerPostcode').value.trim();
-  const slot = document.getElementById('deliverySlot').value;
-  const cardName = document.getElementById('cardName').value.trim();
-  const special = document.getElementById('specialInstructions').value.trim();
-
-  if (!name || !email || !phone || !address || !suburb || !state || !postcode || !slot || !cardName) {
-    alert('Please fill all required fields and select a delivery slot.');
-    return;
-  }
-
-  deliveryFee = calculateDeliveryFee(postcode);
-  if (deliveryFee === 0) {
-    alert('Delivery not available in your area.');
-    return;
-  }
-
-  const finalAmount = subtotal + deliveryFee;
-  const amountInCents = Math.round(finalAmount * 100);
-
-  // --- Create PaymentIntent via Supabase function ---
-  try {
-    const resp = await fetch('/api/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: amountInCents })
-    });
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error);
-
-    const result = await stripe.confirmCardPayment(data.clientSecret, {
-      payment_method: {
-        card: card,
-        billing_details: { name: cardName, email, phone, address: { line1: address, city: suburb, state, postal_code: postcode, country: 'AU' } }
-      }
-    });
-
-    if (result.error) {
-      alert(`Payment failed: ${result.error.message}`);
-      return;
-    }
-
-    if (result.paymentIntent.status === 'succeeded') {
-      const orderNumber = Math.floor(100000 + Math.random() * 900000);
-      await supabase.from('orders').insert([{
-        order_number: `GGO-${orderNumber}`,
-        customer_name: name,
-        email, phone, address, suburb, state, postcode, slot, special,
-        items: trolley,
-        subtotal, delivery_fee: deliveryFee, total: finalAmount,
-        payment_id: result.paymentIntent.id,
-        status: 'Processing'
-      }]);
-      localStorage.removeItem('grocerygo_trolley');
-      alert(`✅ Payment successful! Your order no: GGO-${orderNumber}`);
-      window.location.href = '/index.html';
-    }
-  } catch (err) {
-    console.error(err);
-    alert('Error processing payment. Check console.');
-  }
-});
-
-// --- Populate Delivery Slots ---
-const deliverySlotSelect = document.getElementById('deliverySlot');
-const minHours = 8;
-for (let i = 0; i < 7; i++) {
-  const d = new Date();
-  d.setDate(d.getDate() + i);
-  const dayStr = d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
-  const slots = [{ start: 10, label: '10am-2pm' }, { start: 14, label: '2pm-6pm' }];
-  slots.forEach(slot => {
-    const slotTime = new Date(d);
-    slotTime.setHours(slot.start,0,0,0);
-    const cutoff = new Date();
-    cutoff.setHours(cutoff.getHours() + minHours);
-    if (slotTime > cutoff) {
-      const opt = document.createElement('option');
-      opt.value = `${dayStr} ${slot.label}`;
-      opt.textContent = `${dayStr} ${slot.label}`;
-      deliverySlotSelect.appendChild(opt);
-    }
-  });
-}
-
-// Initial totals update
-updateTotals();
-</script>
-
-<style>
-body { font-family: Arial, sans-serif; background: #f7f8fa; margin:0; padding:20px; }
-.container { background:#fff; padding:20px; max-width:700px; margin:auto; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
-input, select, textarea { width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px; }
-button { padding:12px 20px; border:none; background:#0072ce; color:#fff; border-radius:8px; cursor:pointer; font-weight:600; }
-button:hover { background:#005fa3; }
-#card-element { border:1px solid #ccc; padding:12px; border-radius:8px; margin-bottom:10px; }
-#priceSummary { padding:10px; background:#eef2ff; border-radius:8px; margin-bottom:10px; }
-#priceSummary div { display:flex; justify-content:space-between; margin-bottom:4px; }
-#grandTotalAmount { font-weight:bold; }
-</style>
 </head>
 <body>
+
 <div class="container">
-<h1>Checkout</h1>
+  <h2>Checkout</h2>
 
-<label>Full Name</label><input type="text" id="customerName" placeholder="John Doe">
-<label>Email</label><input type="email" id="customerEmail" placeholder="john@example.com">
-<label>Mobile</label><input type="text" id="customerMobile" placeholder="0412345678">
-<label>Address</label><input type="text" id="customerAddress" placeholder="123 Queen St">
-<label>Suburb</label><input type="text" id="customerSuburb" placeholder="Brisbane">
-<label>State</label>
-<select id="customerState">
-  <option value="QLD" selected>Queensland</option>
-  <option value="NSW">New South Wales</option>
-  <option value="VIC">Victoria</option>
-  <option value="WA">Western Australia</option>
-  <option value="SA">South Australia</option>
-  <option value="TAS">Tasmania</option>
-  <option value="NT">Northern Territory</option>
-  <option value="ACT">ACT</option>
-</select>
-<label>Postcode</label><input type="text" id="customerPostcode" placeholder="4000">
-<small id="postcodeMessage"></small>
+  <label>Full Name</label>
+  <input id="name" />
 
-<label>Delivery Slot</label>
-<select id="deliverySlot"><option value="">Select Slot</option></select>
+  <label>Phone</label>
+  <input id="phone" />
 
-<div id="priceSummary">
-  <div>Subtotal <span id="subtotalAmount">$0.00</span></div>
-  <div>Delivery Fee <span id="deliveryFee">$0.00</span></div>
-  <div>Total <span id="grandTotalAmount">$0.00</span></div>
+  <label>Postcode</label>
+  <input id="postcode" />
+
+  <p id="postcodeMsg" style="color:red;"></p>
+
+  <label>Delivery Slot</label>
+  <select id="slot"></select>
+
+  <h3>Order Summary</h3>
+  <p>Subtotal: $<span id="subtotal">0.00</span></p>
+  <p>Delivery Fee: $<span id="delivery">0.00</span></p>
+  <p><strong>Total: $<span id="total">0.00</span></strong></p>
+
+  <h3>Card Details</h3>
+  <div id="card-element"></div>
+  <p id="card-error" style="color:red;"></p>
+
+  <button id="payBtn">Place Order & Pay</button>
+
+  <p id="successMsg" style="color:green;font-weight:bold;"></p>
 </div>
 
-<h2>Payment Details</h2>
-<label>Cardholder Name</label><input type="text" id="cardName" placeholder="John Doe">
-<label>Card Details</label><div id="card-element"></div>
+<script>
+/* --------------------------------------------------------------
+   1️⃣ INITIALISE SUPABASE
+-------------------------------------------------------------- */
+const supabase = supabaseJs.createClient(
+  "https://gikdqaxdqfmzdvolkxbn.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdpa2RxYXhkcWZtemR2b2xreGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyOTQwNDIsImV4cCI6MjA3Nzg3MDA0Mn0.pJ-9KfCxV7YT5loiURW14xRmf72s1EZRFRh4iKGnQis"
+);
 
-<label>Special Instructions</label><textarea id="specialInstructions" placeholder="Leave at door"></textarea>
+/* --------------------------------------------------------------
+   2️⃣ STRIPE SETUP
+-------------------------------------------------------------- */
+const stripe = Stripe(
+  "pk_test_51SUX2KAmiKZAr3ZsHxEue0cUDH0lVUC3aR0V8TtkOgLyuyNK80iU9KqXADQFELwch25igWkYie3XJr7pe39DI0J4005mJ5xL5S"
+);
 
-<button id="placeOrder">Place Order & Pay</button>
-</div>
+const elements = stripe.elements();
+const cardElement = elements.create("card", { hidePostalCode: true });
+cardElement.mount("#card-element");
+
+/* --------------------------------------------------------------
+   3️⃣ LOAD TROLLEY + SUBTOTAL
+-------------------------------------------------------------- */
+let trolley = JSON.parse(localStorage.getItem("trolley") || "[]");
+
+let subtotal = trolley.reduce((s, i) => s + i.price * i.quantity, 0);
+document.getElementById("subtotal").innerText = subtotal.toFixed(2);
+
+/* --------------------------------------------------------------
+   4️⃣ POSTCODE CHECK + DELIVERY FEE CALC
+-------------------------------------------------------------- */
+const SERVICABLE = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4169,4170,4171,4172,4173,4174,4178,4179,4183,4184,4205,4207,4280,4285,4300,4301,4303,4304,4305,4306,4307,4308,4311,4340,4346,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4512,4513,4514,4515,4516,4517,4518,4519,4520,4521];
+
+document.getElementById("postcode").addEventListener("input", () => {
+  checkDelivery();
+});
+
+function checkDelivery() {
+  const pc = parseInt(document.getElementById("postcode").value);
+  const msg = document.getElementById("postcodeMsg");
+
+  if (!SERVICABLE.includes(pc)) {
+    msg.innerText = "Sorry, we do not service this postcode.";
+    return false;
+  }
+
+  msg.innerText = "";
+  
+  // Distance = difference from 4000
+  const diff = Math.abs(pc - 4000);
+  let fee = 20;
+  if (diff <= 10) fee = 10;
+  else if (diff <= 20) fee = 15;
+
+  document.getElementById("delivery").innerText = fee.toFixed(2);
+  document.getElementById("total").innerText = (subtotal + fee).toFixed(2);
+
+  return fee;
+}
+
+/* --------------------------------------------------------------
+   5️⃣ DELIVERY SLOT (8 HOURS FROM NOW)
+-------------------------------------------------------------- */
+const slotSelect = document.getElementById("slot");
+
+function loadSlots() {
+  const now = new Date();
+  now.setHours(now.getHours() + 8);
+
+  for (let i=0; i<5; i++) {
+    const t = new Date(now.getTime() + i * 60 * 60 * 1000);
+    const label = t.toLocaleString();
+    const opt = document.createElement("option");
+    opt.value = label;
+    opt.textContent = label;
+    slotSelect.appendChild(opt);
+  }
+}
+loadSlots();
+
+/* --------------------------------------------------------------
+   6️⃣ PAYMENT + ORDER INSERT
+-------------------------------------------------------------- */
+document.getElementById("placeOrder").onclick
+
+  const name = document.getElementById("name").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const postcode = parseInt(document.getElementById("postcode").value);
+  const slot = document.getElementById("slot").value;
+
+  const fee = checkDelivery();
+  if (!fee) return;
+
+  const totalAmount = Math.round((subtotal + fee) * 100);
+
+  // Create payment intent
+  const res = await fetch("/api/create-payment-intent", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      amount: totalAmount,
+      trolley,
+      customer: { name, phone, postcode, deliveryFee: fee, slot }
+    })
+  });
+
+  const data = await res.json();
+
+  const result = await stripe.confirmCardPayment(data.clientSecret, {
+    payment_method: {
+      card: cardElement,
+      billing_details: { name }
+    }
+  });
+
+  if (result.error) {
+    document.getElementById("card-error").innerText = result.error.message;
+    return;
+  }
+
+  if (result.paymentIntent.status === "succeeded") {
+    const orderNo = "GGO-" + Math.floor(100000 + Math.random() * 900000);
+    document.getElementById("successMsg").innerText =
+      `Your order has been successful! Your order number is ${orderNo}.`;
+
+    // Save final order to Supabase
+    await supabase.from("orders").insert({
+      order_number: orderNo,
+      name,
+      phone,
+      postcode,
+      delivery_slot: slot,
+      items: trolley,
+      subtotal,
+      delivery_fee: fee,
+      total: subtotal + fee,
+      status: "Paid"
+    });
+
+    localStorage.removeItem("trolley");
+  }
+});
+</script>
+
 </body>
 </html>
