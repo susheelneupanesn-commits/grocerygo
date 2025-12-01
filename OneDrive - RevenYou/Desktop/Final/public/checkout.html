@@ -11,167 +11,64 @@
 /* 1. Base & Reset */
 /* ------------------------------------- */
 :root {
-    --color-primary: #4CAF50; /* Green */
-    --color-secondary: #ff9800; /* Orange */
-    --color-text: #333;
-    --color-light-gray: #f9f9f9;
-    --color-border: #ccc;
-    --color-error: #f44336;
-    --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --primary: #4CAF50;
+    --secondary: #ff9800;
+    --text: #333;
+    --bg-light: #f9f9f9;
+    --border: #ddd;
+    --error: #f44336;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-body {
-    font-family: 'Roboto', sans-serif;
-    background-color: var(--color-light-gray);
-    color: var(--color-text);
-}
-.container {
-    max-width: 650px;
-    margin: 0 auto;
-    padding: 15px;
-}
-h1 {
-    font-size: 1.8em;
-    color: var(--color-primary);
-    margin-bottom: 20px;
-}
-.back-link {
-    display: inline-block;
-    margin-bottom: 15px;
-    text-decoration: none;
-    color: var(--color-primary);
-    font-weight: bold;
-}
+* { box-sizing: border-box; margin:0; padding:0; font-family: 'Roboto', sans-serif; }
+body { background: var(--bg-light); color: var(--text); line-height:1.5; }
+.container { max-width: 700px; margin: 20px auto; padding: 15px; }
+h1,h2 { color: var(--primary); margin-bottom: 15px; }
+h1 { font-size: 1.8em; }
+h2 { font-size: 1.4em; margin-top: 30px; }
+a.back-link { display:inline-block; margin-bottom:15px; color:var(--primary); font-weight:bold; text-decoration:none; }
+.error-message { color: var(--error); background: #ffe6e6; padding:10px; border-radius:8px; margin-bottom:15px; display:none; }
+
 /* ------------------------------------- */
-/* 2. Form Elements & Layout */
+/* 2. Cards & Forms */
 /* ------------------------------------- */
-.form-group {
-    margin-bottom: 20px;
-}
-label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 700;
-    font-size: 0.95em;
-}
-input, select {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    font-size: 1em;
-    transition: border-color 0.3s;
-}
-input:focus, select:focus {
-    border-color: var(--color-primary);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-}
-.input-row {
-    display: flex;
-    gap: 15px;
-}
-.input-row > .form-group {
-    flex: 1;
-    margin-bottom: 0;
-}
+.card { background:#fff; padding:20px; border-radius:10px; box-shadow: var(--shadow); margin-bottom:20px; }
+.form-group { margin-bottom:15px; }
+label { display:block; font-weight:700; margin-bottom:5px; }
+input, select { width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; font-size:1em; }
+input:focus, select:focus { outline:none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(76,175,80,0.2); }
+.input-row { display:flex; gap:15px; flex-wrap:wrap; }
+.input-row > .form-group { flex:1; min-width:120px; }
 
 /* ------------------------------------- */
 /* 3. Summary & Payment */
 /* ------------------------------------- */
-.section-title {
-    font-size: 1.4em;
-    margin: 25px 0 15px 0;
-    color: var(--color-primary);
-}
-#priceSummary {
-    padding: 15px;
-    background-color: #fff;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-}
-#priceSummary div {
-    display: flex;
-    justify-content: space-between;
-    padding: 5px 0;
-    font-size: 1.05em;
-}
-#priceSummary strong {
-    font-size: 1.2em;
-    color: var(--color-primary);
-}
-#payment-element-container {
-    margin-top: 20px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: #fff;
-    box-shadow: var(--shadow-light);
-}
+#priceSummary div { display:flex; justify-content:space-between; padding:5px 0; }
+#priceSummary strong { color: var(--primary); font-size:1.1em; }
+#payment-element-container { margin-top:20px; }
 
 /* ------------------------------------- */
-/* 4. Buttons & Messages */
+/* 4. Buttons & Responsive */
 /* ------------------------------------- */
-button {
-    width: 100%;
-    padding: 15px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.1em;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 15px;
-    transition: background-color 0.3s, opacity 0.3s;
-}
-#getPaymentOptions {
-    background-color: var(--color-primary);
-    color: white;
-}
-#getPaymentOptions:hover:not(:disabled) {
-    background-color: #43a047;
-}
-#placeOrder {
-    background-color: var(--color-secondary);
-    color: white;
-}
-#placeOrder:hover:not(:disabled) {
-    background-color: #fb8c00;
-}
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-.error-message { 
-    color: var(--color-error); 
-    font-weight: 700;
-    padding: 10px;
-    border: 1px dashed var(--color-error);
-    border-radius: 8px;
-    margin-bottom: 15px;
-}
+button { width:100%; padding:15px; border:none; border-radius:8px; font-weight:700; font-size:1.1em; cursor:pointer; margin-top:15px; transition:0.3s; }
+#getPaymentOptions { background: var(--primary); color:#fff; }
+#getPaymentOptions:hover:not(:disabled) { background:#43a047; }
+#placeOrder { background: var(--secondary); color:#fff; }
+#placeOrder:hover:not(:disabled) { background:#fb8c00; }
+button:disabled { opacity:0.6; cursor:not-allowed; }
+
 /* ------------------------------------- */
-/* 5. Service Area Message */
+/* 5. Service Message */
 /* ------------------------------------- */
-#serviceAreaMessage {
-    padding: 10px;
-    border-radius: 5px;
-    margin-top: 10px; 
-    margin-bottom: 10px;
-    font-size: 0.9em;
-    font-weight: bold;
-}
-.service-ok {
-    background-color: #e8f5e9; /* Light green */
-    color: #388e3c; /* Dark green */
-}
-.service-warn {
-    background-color: #fff3e0; /* Light orange */
-    color: #e65100; /* Dark orange */
+#serviceAreaMessage { padding:10px; border-radius:6px; margin-top:5px; font-weight:bold; }
+.service-ok { background:#e8f5e9; color:#388e3c; }
+.service-warn { background:#fff3e0; color:#e65100; }
+
+/* ------------------------------------- */
+/* 6. Mobile adjustments */
+/* ------------------------------------- */
+@media(max-width:500px){
+  .input-row { flex-direction:column; }
+  h1,h2 { font-size:1.5em; }
 }
 </style>
 </head>
@@ -179,13 +76,13 @@ button:disabled {
 
 <div class="container">
     <a href="./trolley.html" class="back-link">← Back to Trolley</a>
-    <h1>🛒 Your Order Checkout</h1>
+    <h1>🛒 Checkout</h1>
 
-    <div id="statusMessage" class="error-message" style="display:none;"></div>
+    <div id="statusMessage" class="error-message"></div>
 
-    <form id="checkoutForm">
-        <h2 class="section-title">Customer Details</h2>
-
+    <!-- Customer Details -->
+    <div class="card">
+        <h2>Customer Details</h2>
         <div class="form-group">
             <label for="customerName">Full Name</label>
             <input id="customerName" placeholder="John Doe" value="Test Customer" required>
@@ -200,8 +97,11 @@ button:disabled {
                 <input id="customerMobile" placeholder="0412345678" value="0412345678" required>
             </div>
         </div>
+    </div>
 
-        <h2 class="section-title">Delivery Address</h2>
+    <!-- Delivery Address -->
+    <div class="card">
+        <h2>Delivery Address</h2>
         <div class="form-group">
             <label for="customerAddress">Address Line 1</label>
             <input id="customerAddress" placeholder="123 Queen St" value="123 Queen St" required>
@@ -209,7 +109,6 @@ button:disabled {
         <div class="input-row">
             <div class="form-group">
                 <label for="customerSuburb">Suburb</label>
-                <!-- Set initial suburb to match initial 4000 postcode for Group C testing -->
                 <input id="customerSuburb" placeholder="Brisbane" value="Brisbane" required>
             </div>
             <div class="form-group">
@@ -223,369 +122,162 @@ button:disabled {
         </div>
         <div class="form-group">
             <label for="customerPostcode">Postcode</label>
-            <!-- Default to a postcode in the largest group (C) for initial test -->
             <input id="customerPostcode" placeholder="4000" value="4000" required>
-            <div id="serviceAreaMessage" style="display:none;"></div>
+            <div id="serviceAreaMessage"></div>
         </div>
-        
         <div class="form-group">
-            <label for="deliverySlot">Delivery Time Slot (Calculated based on Postcode & Day)</label>
+            <label for="deliverySlot">Delivery Time Slot</label>
             <select id="deliverySlot" required></select>
         </div>
-    </form>
-
-
-    <hr>
-
-    <h2 class="section-title">🧾 Order Summary</h2>
-    <div id="priceSummary">
-        <div>Subtotal: <span id="subtotalAmount"></span></div>
-        <div>Delivery Fee: <span id="deliveryFee"></span></div>
-        <div style="margin-top: 10px;"><strong>Grand Total:</strong> <span id="grandTotalAmount"></span></div>
     </div>
 
-    <hr>
-
-    <h2 class="section-title">💳 Payment</h2>
-
-    <button id="getPaymentOptions">Proceed to Payment</button>
-
-    <div id="payment-element-container" style="display:none;">
-        <div id="payment-element"></div>
+    <!-- Order Summary -->
+    <div class="card">
+        <h2>Order Summary</h2>
+        <div id="priceSummary">
+            <div>Subtotal: <span id="subtotalAmount"></span></div>
+            <div>Delivery Fee: <span id="deliveryFee"></span></div>
+            <div><strong>Grand Total:</strong> <span id="grandTotalAmount"></span></div>
+        </div>
     </div>
 
-    <button id="placeOrder" style="display:none;">Place Order & Pay</button>
-    
-    <hr>
-
-    <h2 class="section-title">🔐 OTP Verification (Testing Only)</h2>
-    <button id="generateOTP">Generate OTP</button>
-    <div id="otpDisplay" style="color:var(--color-error);font-weight:bold;margin-top:10px;"></div>
-    <div class="form-group">
-        <input id="otpInput" placeholder="Enter OTP">
+    <!-- Payment -->
+    <div class="card">
+        <h2>Payment</h2>
+        <button id="getPaymentOptions">Proceed to Payment</button>
+        <div id="payment-element-container" style="display:none;"><div id="payment-element"></div></div>
+        <button id="placeOrder" style="display:none;">Place Order & Pay</button>
     </div>
 
+    <!-- OTP Verification -->
+    <div class="card">
+        <h2>OTP Verification (Testing Only)</h2>
+        <button id="generateOTP">Generate OTP</button>
+        <div id="otpDisplay" style="color:var(--error);font-weight:bold;margin-top:10px;"></div>
+        <div class="form-group">
+            <input id="otpInput" placeholder="Enter OTP">
+        </div>
+    </div>
 </div>
 
-<!-- The comprehensive JavaScript to connect everything -->
 <script type="module">
-// Stripe Publishable Key
-const STRIPE_PUBLISHABLE_KEY = "pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l"; 
+// ----------------------
+// Stripe & DOM elements
+// ----------------------
+const STRIPE_PUBLISHABLE_KEY = "pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l";
 const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
-// --- DOM ELEMENTS ---
-const nameElement = document.getElementById("customerName");
-const emailElement = document.getElementById("customerEmail");
-const mobileElement = document.getElementById("customerMobile");
-const addressElement = document.getElementById("customerAddress");
-const suburbElement = document.getElementById("customerSuburb");
-const stateElement = document.getElementById("customerState");
-const postcodeElement = document.getElementById("customerPostcode");
-const deliverySlotElement = document.getElementById("deliverySlot");
+const nameEl = document.getElementById("customerName");
+const emailEl = document.getElementById("customerEmail");
+const mobileEl = document.getElementById("customerMobile");
+const addressEl = document.getElementById("customerAddress");
+const suburbEl = document.getElementById("customerSuburb");
+const stateEl = document.getElementById("customerState");
+const postcodeEl = document.getElementById("customerPostcode");
+const deliverySlotEl = document.getElementById("deliverySlot");
 const subtotalSpan = document.getElementById("subtotalAmount");
 const feeSpan = document.getElementById("deliveryFee");
 const totalSpan = document.getElementById("grandTotalAmount");
-const getPaymentOptionsButton = document.getElementById("getPaymentOptions");
-const placeOrderButton = document.getElementById("placeOrder");
-const paymentElementContainer = document.getElementById("payment-element-container");
+const getPaymentBtn = document.getElementById("getPaymentOptions");
+const placeOrderBtn = document.getElementById("placeOrder");
+const paymentContainer = document.getElementById("payment-element-container");
 const otpDisplay = document.getElementById("otpDisplay");
 const otpInput = document.getElementById("otpInput");
 const statusMessage = document.getElementById("statusMessage");
 const serviceAreaMessage = document.getElementById("serviceAreaMessage");
 
-let elements; 
-let clientSecret;
-window.orderNumber; 
-let currentOTP = null;
+let elements, clientSecret, currentOTP = null;
+window.orderNumber = null;
 
-// ----------------------------------------------------------------------------------
-// --- 1. LOGISTICS CONSTANTS (COMPREHENSIVE POSTCODE LISTS) ---
-// ----------------------------------------------------------------------------------
+// ----------------------
+// Logistics Data
+// ----------------------
+const GROUP_A = [4300,4301,4303,4304,4305,4306,4307,4308,4311,4114,4118,4124,4125,4127,4128,4129,4131,4132,4133,4207,4280,4285,4290];
+const GROUP_B = [4169,4170,4171,4172,4173,4174,4178,4179,4157,4158,4159,4160,4161,4163,4164,4165];
+const GROUP_C = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4520];
 
-// Group A: Ipswich & Logan (Corrected to include 4207 and a broader set of council postcodes)
-const GROUP_A = [
-    // Ipswich (Original + core)
-    4300,4301,4303,4304,4305,4306,4307,4308,4309,4310,4311, 
-    // Logan (Core + requested 4207)
-    4114,4118,4124,4125,4127,4128,4129,4131,4132,4133,4207,4280,4285,4290 
-]; 
+const SLOTS = ["8:00-11:00","11:00-15:00","15:00-18:00"];
+const POSTCODE_DISTANCES = Object.fromEntries([...GROUP_A,...GROUP_B,...GROUP_C].map((p,i)=>{
+  if(GROUP_A.includes(p)) return [p,30+i%5];
+  if(GROUP_B.includes(p)) return [p,15+i%5];
+  if(GROUP_C.includes(p)) return [p,1+i%10];
+}));
 
-// Group B: Redland Bay & Neighbouring Brisbane Council Half (Bayside)
-const GROUP_B = [
-    4169,4170,4171,4172,4173,4174,4178,4179, // User's Brisbane Bayside/South list
-    // Redland City
-    4157, 4158, 4159, 4160, 4161, 4163, 4164, 4165
-]; 
+const DISTANCE_FEES = [{maxKm:10,fee:10},{maxKm:20,fee:15},{maxKm:30,fee:20},{maxKm:Infinity,fee:25}];
 
-// Group C: Rest of Brisbane + Moreton Bay Council (Including previously missing Moreton Bay)
-const GROUP_C = [
-    // User's Brisbane City Council list (Inner/West/North/South-West)
-    4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,
-    // Moreton Bay (Core additions)
-    4500, 4501, 4502, 4503, 4504, 4505, 4506, 4507, 4508, 4509, 4510, 4511, 4520
-].filter((pc, index, self) => self.indexOf(pc) === index); // Ensure uniqueness
-
-// Delivery Time Slots
-const SLOTS = ["8:00-11:00","11:00-15:00","15:00-18:00"]; // Index 0, 1, 2
-
-// Distance Mapping (Assigning sample distances to ALL postcodes for robust validation)
-const ALL_POSTCODES = [...GROUP_A, ...GROUP_B, ...GROUP_C];
-
-const POSTCODE_DISTANCES = ALL_POSTCODES.reduce((acc, pc, i) => {
-    // Assign varying sample distances based on group proximity assumption
-    if (GROUP_A.includes(pc)) {
-        acc[pc] = 30 + (i % 5); // Longer distance
-    } else if (GROUP_B.includes(pc)) {
-        acc[pc] = 15 + (i % 5); // Medium distance
-    } else if (GROUP_C.includes(pc)) {
-        acc[pc] = 1 + (i % 10); // Short distance
-    }
-    return acc;
-}, {});
-
-
-// Delivery Fee Tiers
-const DISTANCE_FEES = [
-  { maxKm: 10, fee: 10 },
-  { maxKm: 20, fee: 15 },
-  { maxKm: 30, fee: 20 },
-  { maxKm: Infinity, fee: 25 } // For 30+ km
-];
-
-// ----------------------------------------------------------------------------------
-// --- 2. LOGISTICS FUNCTIONS (IMPLEMENTING ROTATIONAL LOGIC) ---
-// ----------------------------------------------------------------------------------
-
-function getPostcodeGroup(postcode){
-  const pc = Number(postcode);
-  if(GROUP_A.includes(pc)) return 'A';
-  if(GROUP_B.includes(pc)) return 'B';
-  if(GROUP_C.includes(pc)) return 'C';
-  return null;
+function getPostcodeGroup(pc){ const p=Number(pc); if(GROUP_A.includes(p)) return'A'; if(GROUP_B.includes(p)) return'B'; if(GROUP_C.includes(p)) return'C'; return null; }
+function getDayIndex(){ return new Date().getDay(); }
+function getAvailableSlots(pc){ return getAvailableSlotsByDay(pc,getDayIndex()); }
+function getAvailableSlotsByDay(pc,day){ 
+  const group=getPostcodeGroup(pc); if(!group||day===0)return[];
+  const rotation={'A':{1:[SLOTS[0]],2:[],3:[SLOTS[1]],4:[],5:[SLOTS[2]],6:[]},'B':{1:[],2:[SLOTS[0]],3:[],4:[SLOTS[1]],5:[],6:[SLOTS[2]]},'C':{1:[SLOTS[1],SLOTS[2]],2:[SLOTS[1],SLOTS[2]],3:[SLOTS[0],SLOTS[2]],4:[SLOTS[0],SLOTS[2]],5:[SLOTS[0],SLOTS[1]],6:[SLOTS[0],SLOTS[1]]}}; 
+  return rotation[group][day]||[];
 }
-function getDayIndex(){ 
-    const day = new Date().getDay(); 
-    return day; // 0=Sun, 1=Mon, ..., 6=Sat
-}
+function calculateDeliveryFee(pc){ const d=POSTCODE_DISTANCES[Number(pc)]; if(d===undefined)return-1; for(const f of DISTANCE_FEES){ if(d<=f.maxKm) return f.fee; } return 25; }
+function formatCurrency(amount){ return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(amount); }
+function displayError(msg){ statusMessage.innerText=msg; statusMessage.style.display='block'; }
+function clearError(){ statusMessage.style.display='none'; statusMessage.innerText=''; }
 
-function getAvailableSlots(postcode){
-  const group = getPostcodeGroup(postcode);
-  const day = getDayIndex(); // 0 (Sun) to 6 (Sat)
-  if(!group || day === 0) return []; // No service on Sunday
+const trolley=JSON.parse(localStorage.getItem("grocerygo_trolley")||"[]");
+let subtotal=trolley.reduce((s,i)=>s+(i.price||0)*(i.quantity||1),0);
 
-  // SLOTS mapping: S0=8:00-11:00, S1=11:00-15:00, S2=15:00-18:00
-  
-  // Rotation logic based on your specific requirements:
-  const rotation = {
-    'A': { // Ipswich + Logan
-        1: [SLOTS[0]], // Mon: 8-11
-        2: [],         // Tue: None
-        3: [SLOTS[1]], // Wed: 11-3
-        4: [],         // Thu: None
-        5: [SLOTS[2]], // Fri: 3-6
-        6: []          // Sat: None
-    },
-    'B': { // Redland Bay + half Brisbane council
-        1: [],         // Mon: None
-        2: [SLOTS[0]], // Tue: 8-11
-        3: [],         // Wed: None
-        4: [SLOTS[1]], // Thu: 11-3
-        5: [],         // Fri: None
-        6: [SLOTS[2]]  // Sat: 3-6
-    },
-    'C': { // Rest of Brisbane + Moreton Bay Council (Covers remaining slots)
-        1: [SLOTS[1], SLOTS[2]], // Mon: 11-3, 3-6 (A takes 8-11)
-        2: [SLOTS[1], SLOTS[2]], // Tue: 11-3, 3-6 (B takes 8-11)
-        3: [SLOTS[0], SLOTS[2]], // Wed: 8-11, 3-6 (A takes 11-3)
-        4: [SLOTS[0], SLOTS[2]], // Thu: 8-11, 3-6 (B takes 11-3)
-        5: [SLOTS[0], SLOTS[1]], // Fri: 8-11, 11-3 (A takes 3-6)
-        6: [SLOTS[0], SLOTS[1]]  // Sat: 8-11, 11-3 (B takes 3-6)
-    }
-  };
-  
-  return rotation[group] ? (rotation[group][day] || []) : [];
-}
+function updateSummary(postcode){
+  const fee=calculateDeliveryFee(postcode);
+  let total=subtotal+(fee>0?fee:0);
+  serviceAreaMessage.style.display='block';
+  getPaymentBtn.disabled=true;
 
-function calculateDeliveryFee(postcode){
-  const dist = POSTCODE_DISTANCES[Number(postcode)];
-  if(dist===undefined) return -1; // -1 means non-serviceable
-  for(const df of DISTANCE_FEES){
-    if(dist<=df.maxKm) return df.fee;
-  }
-  return 25;
-}
+  if(fee===-1){ serviceAreaMessage.className='service-warn'; serviceAreaMessage.textContent=`⚠️ Postcode ${postcode} is outside our delivery range`; feeSpan.innerText='N/A'; totalSpan.innerText='N/A'; }
+  else{ serviceAreaMessage.className='service-ok'; serviceAreaMessage.textContent=`✅ Service available. Distance: ${POSTCODE_DISTANCES[Number(postcode)].toFixed(1)} km. Fee: ${formatCurrency(fee)}`; feeSpan.innerText=formatCurrency(fee); totalSpan.innerText=formatCurrency(total); }
 
-// ----------------------------------------------------------------------------------
-// --- 3. UI, EVENT LISTENERS, & STRIPE LOGIC (Remains the same) ---
-// ----------------------------------------------------------------------------------
+  subtotalSpan.innerText=formatCurrency(subtotal);
 
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format(amount);
-}
-function displayError(message) { statusMessage.innerText = message; statusMessage.style.display = 'block'; }
-function clearError() { statusMessage.style.display = 'none'; statusMessage.innerText = ''; }
-
-const trolley = JSON.parse(localStorage.getItem("grocerygo_trolley") || "[]");
-let subtotal = trolley.reduce((s,i)=>s+(i.price || 0)*(i.quantity || 1),0);
-
-const updateSummary = (postcode) => {
-  const fee = calculateDeliveryFee(postcode);
-  let total = subtotal + (fee > 0 ? fee : 0);
-  
-  // 1. Handle Service Area Message and Fee Display
-  serviceAreaMessage.style.display = 'block';
-  getPaymentOptionsButton.disabled = true; // Disable by default
-
-  if (fee === -1) {
-      serviceAreaMessage.className = 'service-area-message service-warn';
-      serviceAreaMessage.textContent = `⚠️ Postcode ${postcode} is outside our current delivery range.`;
-      feeSpan.innerText = 'N/A';
-      totalSpan.innerText = 'N/A';
-  } else {
-      serviceAreaMessage.className = 'service-area-message service-ok';
-      const distance = POSTCODE_DISTANCES[Number(postcode)];
-      serviceAreaMessage.textContent = `✅ Service available. Distance: ${distance.toFixed(1)} km. Fee: ${formatCurrency(fee)}`;
-      feeSpan.innerText = formatCurrency(fee);
-      totalSpan.innerText = formatCurrency(total);
+  let slots=getAvailableSlots(postcode);
+  if(slots.length===0 && fee!==-1){
+    const today=getDayIndex();
+    for(let i=1;i<=6;i++){ const nextDay=(today+i)%7; slots=getAvailableSlotsByDay(postcode,nextDay); if(slots.length>0)break; }
   }
 
-  // 2. Update summary display
-  subtotalSpan.innerText = formatCurrency(subtotal);
-  
-  // 3. Update Delivery Slots
-  const slots = getAvailableSlots(postcode);
-  deliverySlotElement.innerHTML = '';
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.disabled = true;
-  defaultOption.selected = true;
-  deliverySlotElement.appendChild(defaultOption);
+  deliverySlotEl.innerHTML='';
+  const defaultOption=document.createElement('option');
+  defaultOption.value=''; defaultOption.disabled=true; defaultOption.selected=true;
+  defaultOption.textContent=slots.length>0?"Select a time slot":"No slots available";
+  deliverySlotEl.appendChild(defaultOption);
+  slots.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; deliverySlotEl.appendChild(o); });
+  deliverySlotEl.disabled=slots.length===0;
+  getPaymentBtn.disabled=slots.length===0;
+}
 
-  if (fee === -1) {
-      defaultOption.textContent = "Cannot select slot (Out of area)";
-      deliverySlotElement.disabled = true;
-  } else if (slots.length === 0) {
-      const day = getDayIndex();
-      defaultOption.textContent = (day === 0) ? "No service on Sunday" : "No slots available today for your area.";
-      deliverySlotElement.disabled = true;
-      displayError("No delivery slots are available today. Please check back tomorrow.");
-  } else {
-      defaultOption.textContent = "Select a time slot";
-      deliverySlotElement.disabled = false;
-      getPaymentOptionsButton.disabled = false;
-      clearError(); 
-  }
+postcodeEl.oninput=(e)=>updateSummary(e.target.value.trim());
+updateSummary(postcodeEl.value.trim());
 
-  slots.forEach(slot => {
-      const option = document.createElement('option');
-      option.value = slot;
-      option.textContent = slot;
-      deliverySlotElement.appendChild(option);
-  });
+document.getElementById("generateOTP").onclick=()=>{ currentOTP=Math.floor(1000+Math.random()*9000); otpDisplay.innerText=`Generated OTP: ${currentOTP}`; };
+
+// Payment Button
+getPaymentBtn.onclick=async(e)=>{ 
+  e.preventDefault(); clearError();
+  const customer={name:nameEl.value.trim(),email:emailEl.value.trim(),mobile:mobileEl.value.trim(),address:addressEl.value.trim(),suburb:suburbEl.value.trim(),state:stateEl.value,postcode:postcodeEl.value.trim(),deliverySlot:deliverySlotEl.value};
+  if(Object.values(customer).some(v=>!v)){ displayError("Please fill all customer fields and select a delivery slot."); return; }
+
+  getPaymentBtn.disabled=true; getPaymentBtn.innerText="Processing...";
+  try{
+    const mockResponse={ok:true,json:()=>Promise.resolve({clientSecret:"pi_fake_client_secret_xyz",orderNumber:Math.floor(100000+Math.random()*900000).toString()})};
+    const res=await mockResponse;
+    const data=await res.json();
+    clientSecret=data.clientSecret; window.orderNumber=data.orderNumber;
+    elements=stripe.elements({clientSecret,appearance:{theme:'stripe'}});
+    elements.create("payment").mount("#payment-element");
+    paymentContainer.style.display='block'; placeOrderBtn.style.display='block'; getPaymentBtn.style.display='none';
+    document.querySelectorAll('form input, form select').forEach(el=>el.disabled=true);
+  }catch(err){ displayError("Network error. Check server."); getPaymentBtn.innerText="Proceed to Payment"; getPaymentBtn.disabled=false; }
 };
 
-
-document.getElementById("generateOTP").onclick = () => {
-  currentOTP = Math.floor(1000 + Math.random() * 9000); 
-  otpDisplay.innerText = `Generated OTP: ${currentOTP}`;
-};
-postcodeElement.oninput = (e) => updateSummary(e.target.value.trim());
-updateSummary(postcodeElement.value.trim()); // Initial load
-
-// --- Payment and Order Logic ---
-
-getPaymentOptionsButton.onclick = async (e) => {
-    e.preventDefault();
-    clearError();
-    
-    // Basic Form Validation Check
-    const customer = {
-        name: nameElement.value.trim(), email: emailElement.value.trim(), mobile: mobileElement.value.trim(),
-        address: addressElement.value.trim(), suburb: suburbElement.value.trim(), state: stateElement.value,
-        postcode: postcodeElement.value.trim(), deliverySlot: deliverySlotElement.value, 
-    };
-    if (Object.values(customer).some(val => !val)) {
-        displayError("Please ensure all customer fields and a delivery slot are selected.");
-        return;
-    }
-
-    getPaymentOptionsButton.disabled = true;
-    getPaymentOptionsButton.innerText = "Processing...";
-
-    try {
-        // Mock API call for demonstration:
-        const mockResponse = {
-            ok: true,
-            json: () => Promise.resolve({
-                clientSecret: "pi_fake_client_secret_xyz",
-                orderNumber: Math.floor(100000 + Math.random() * 900000).toString()
-            })
-        };
-        const res = await mockResponse; 
-        
-        // Use the commented-out code below for a real backend fetch:
-        /*
-        const res = await fetch("/api/create-payment-intent", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ trolley, customer })
-        });
-        */
-    
-        const data = await res.json();
-
-        clientSecret = data.clientSecret;
-        window.orderNumber = data.orderNumber;
-    
-        elements = stripe.elements({ clientSecret, appearance: { theme: 'stripe' } });
-        elements.create("payment").mount("#payment-element");
-
-        paymentElementContainer.style.display = 'block';
-        placeOrderButton.style.display = 'block';
-        getPaymentOptionsButton.style.display = 'none';
-        
-        document.querySelectorAll('form input, form select').forEach(el => el.disabled = true);
-        
-    } catch (err) {
-        displayError("An unknown network error occurred. Check server connection.");
-        getPaymentOptionsButton.innerText = "Proceed to Payment";
-        getPaymentOptionsButton.disabled = false;
-    }
-};
-
-placeOrderButton.onclick = async (e)=>{
-  e.preventDefault();
-  clearError();
-
-  if(!currentOTP || Number(otpInput.value) !== currentOTP){
-    displayError("Invalid OTP. Generate and enter the correct OTP.");
-    return;
-  }
-  
-  placeOrderButton.innerText = "Processing Payment...";
-  placeOrderButton.disabled = true;
-
-  // Mock Stripe confirmation for the demonstration environment
-  // In a real environment, this confirms the payment via the Stripe Element
-  setTimeout(async () => {
-    // Simulate successful payment redirect
-    window.location.href = `${window.location.origin}/success.html?order=${window.orderNumber}`;
-  }, 1500);
-
-  /*
-  // Original Stripe confirmation logic:
-  const { error: stripeError } = await stripe.confirmPayment({
-    elements: elements,
-    confirmParams: {
-      return_url: `${window.location.origin}/success.html?order=${window.orderNumber}`, 
-    },
-  });
-
-  if(stripeError){
-    displayError(`Payment failed: ${stripeError.message}`);
-    placeOrderButton.innerText = "Place Order & Pay";
-    placeOrderButton.disabled = false;
-  }
-  */
+// Place Order Button
+placeOrderBtn.onclick=async(e)=>{
+  e.preventDefault(); clearError();
+  if(!currentOTP||Number(otpInput.value)!==currentOTP){ displayError("Invalid OTP. Generate and enter the correct OTP."); return; }
+  placeOrderBtn.innerText="Processing Payment..."; placeOrderBtn.disabled=true;
+  setTimeout(()=>{ window.location.href=`${window.location.origin}/success.html?order=${window.orderNumber}`; },1500);
 };
 </script>
 </body>
