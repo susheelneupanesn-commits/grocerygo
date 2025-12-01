@@ -60,7 +60,7 @@
             <!-- City and Zip -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                    <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City/Suburb</label>
                     <input id="city" type="text" value="Brisbane" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
                 </div>
                 <div>
@@ -69,17 +69,29 @@
                     <input id="zip" type="text" value="4000" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
                 </div>
             </div>
+            
+             <!-- State and Delivery Slot (Added State to match server's customer object) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State (e.g., QLD)</label>
+                    <input id="state" type="text" value="QLD" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                </div>
+                <div>
+                    <label for="deliverySlot" class="block text-sm font-medium text-gray-700 mb-1">Delivery Slot (Date|Time)</label>
+                    <input id="deliverySlot" type="text" value="2025-12-01|Anytime" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                </div>
+            </div>
 
             <!-- Order Summary (Moved Below Shipping Details) -->
             <div class="bg-indigo-50 p-5 rounded-lg border border-indigo-200 mt-6">
                 <h2 class="text-xl font-semibold text-indigo-800 mb-2">Final Order Summary</h2>
-                <p id="delivery-info" class="text-sm text-indigo-600 mb-3 font-medium">Delivery calculated based on postcode.</p>
+                <p id="delivery-info" class="text-sm text-indigo-600 mb-3 font-medium">Delivery fee calculated by server based on postcode.</p>
                 <div id="order-details" class="space-y-1">
                     <!-- Dynamic items will be populated here by JavaScript -->
                 </div>
                 <div class="border-t border-indigo-300 my-3"></div>
                 <div class="flex justify-between font-extrabold text-2xl text-indigo-700">
-                    <span>TOTAL</span>
+                    <span>TOTAL (Server Calculated)</span>
                     <span id="final-total-display">$0.00 AUD</span>
                 </div>
             </div>
@@ -120,11 +132,11 @@
         document.head.appendChild(stripeScript);
         
         // --- Globals ---
-        // Simulating the subtotal carried over from trolley.html
-        window.PRODUCT_SUBTOTAL_CENTS = 1000; // $10.00 base product cost
-        window.DELIVERY_CHARGE_CENTS = 0; // Starts at $0
-        window.ORDER_TOTAL_CENTS = 0; // Calculated dynamically
-        window.serverUrl = 'http://localhost:3000/create-payment-intent';
+        // CRITICAL FIX: The server expects product prices in AUD (dollars, not cents)
+        const PRODUCT_SUBTOTAL_AUD = 10.00; 
+        
+        // UPDATED ENDPOINT PATH TO MATCH SERVER ROUTE
+        window.serverUrl = 'http://localhost:3000/api/create-payment-intent';
         
         // Firebase Setup
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -140,40 +152,65 @@
         // --- Core Functions ---
 
         /**
-         * Calculates the total, updates the global total variable, and refreshes the UI summary.
-         * @param {number} deliveryCents - The determined delivery charge in cents.
+         * Simulates the trolley data structure expected by the Node.js server.
+         * Note: Prices here are in dollars (AUD), as the server expects.
+         * @returns {Array} A mock trolley array.
          */
-        function updateOrderSummary(deliveryCents) {
-            window.DELIVERY_CHARGE_CENTS = deliveryCents;
-            window.ORDER_TOTAL_CENTS = window.PRODUCT_SUBTOTAL_CENTS + window.DELIVERY_CHARGE_CENTS;
-            
-            const totalDollars = (window.ORDER_TOTAL_CENTS / 100).toFixed(2);
-            const subtotalDollars = (window.PRODUCT_SUBTOTAL_CENTS / 100).toFixed(2);
+        function getTrolleyData() {
+            // Your server side code expects 'price' to be the unit price in AUD.
+            return [
+                { name: "Premium Widget", price: PRODUCT_SUBTOTAL_AUD, quantity: 1 }
+            ];
+        }
+
+        /**
+         * Collects customer data from the form, aligned with the server's expected `customer` object structure.
+         */
+        function getCustomerData() {
+             return {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                mobile: document.getElementById('phone').value, // Server expects 'mobile'
+                address: document.getElementById('address').value, // Server expects 'address' (line1)
+                suburb: document.getElementById('city').value, // Server expects 'suburb'
+                state: document.getElementById('state').value, // Server expects 'state'
+                postcode: document.getElementById('zip').value, // Server expects 'postcode'
+                deliverySlot: document.getElementById('deliverySlot').value // Server expects 'deliverySlot'
+            };
+        }
+
+
+        /**
+         * Calculates the total, updates the global total variable, and refreshes the UI summary.
+         * NOTE: Delivery fee is only estimated here; the final amount is calculated by the server.
+         */
+        function updateOrderSummary(deliveryFeeAud) {
+            // This is just for display/estimation, the server holds the source of truth
+            const totalDollars = (PRODUCT_SUBTOTAL_AUD + deliveryFeeAud).toFixed(2);
+            const subtotalDollars = PRODUCT_SUBTOTAL_AUD.toFixed(2);
             
             // 1. Update Order Details List
             const summaryEl = document.getElementById('order-details');
+            
+            let deliveryDisplay = 'Calculating...';
+            if (deliveryFeeAud > 0) {
+                deliveryDisplay = `$${deliveryFeeAud.toFixed(2)}`;
+            } else if (document.getElementById('zip').value.length === 4) {
+                // Use a standard estimate for the UI
+                deliveryDisplay = `$9.99 (Est.)`;
+            }
+
             summaryEl.innerHTML = `
                 <div class="flex justify-between">
                     <span>Product Subtotal</span>
                     <span>$${subtotalDollars}</span>
-                </div>`;
-            
-            // Delivery Charge Display
-            let deliveryDisplay = 'TBD';
-            if (deliveryCents > 0) {
-                deliveryDisplay = `$${(deliveryCents / 100).toFixed(2)}`;
-            } else if (document.getElementById('zip').value.length === 4) {
-                 // If a 4-digit zip was entered but charge is 0, show $0.00
-                deliveryDisplay = `$0.00`;
-            }
-
-            summaryEl.innerHTML += `
-                <div class="flex justify-between">
-                    <span>Delivery Charge</span>
+                </div>
+                 <div class="flex justify-between text-yellow-700">
+                    <span>Delivery Charge (Server Estimate)</span>
                     <span>${deliveryDisplay}</span>
                 </div>`;
             
-            // 2. Update Total and Button Text
+            // 2. Update Total and Button Text (Use the server's last known total if available, otherwise just subtotal)
             document.getElementById('final-total-display').textContent = `$${totalDollars} AUD`;
             
             const buttonTextEl = document.getElementById('button-text');
@@ -185,48 +222,33 @@
         /**
          * Handles the dynamic calculation of delivery charge based on Australian postcode.
          */
-        function calculateDelivery() {
+        function calculateDeliveryEstimate() {
             const zipInput = document.getElementById('zip');
-            const infoEl = document.getElementById('delivery-info');
             const submitButton = document.getElementById('submit-button');
             const zip = zipInput.value.trim();
-            let deliveryCents = 0;
+            let deliveryFeeAud = 0; // Default estimate
             let isValidZip = false;
-            
-            // Reset delivery status info
-            infoEl.textContent = 'Enter a valid 4-digit Australian Postcode';
-            infoEl.className = 'text-sm text-indigo-600 mb-3 font-medium';
             
             if (zip.length === 4 && /^\d{4}$/.test(zip)) {
                 isValidZip = true;
-                // Example logic: QLD postcodes start with '4'
+                // Simple client-side estimation based on your old logic
                 if (zip.startsWith('4')) {
-                    deliveryCents = 999; // $9.99 for QLD
-                    infoEl.textContent = 'QLD Flat Rate Shipping ($9.99)';
-                } else if (zip.startsWith('2') || zip.startsWith('3') || zip.startsWith('5') || zip.startsWith('6') || zip.startsWith('7') || zip.startsWith('8')) {
-                    deliveryCents = 1500; // $15.00 for other major states (NSW, VIC, SA, WA, TAS, ACT)
-                    infoEl.textContent = 'Interstate Shipping ($15.00)';
+                    deliveryFeeAud = 9.99; 
+                } else if (['2', '3', '5', '6', '7', '8'].includes(zip.charAt(0))) {
+                    deliveryFeeAud = 15.00; 
                 } else {
-                    // Unknown or remote/NT postcodes
-                     deliveryCents = 2000; // $20.00 for unknown/remote/NT
-                     infoEl.textContent = 'Remote Area Shipping ($20.00)';
+                    deliveryFeeAud = 20.00; 
                 }
                 
-                updateOrderSummary(deliveryCents);
             } else {
-                // If zip is invalid or incomplete, delivery is $0 and total reflects subtotal only.
-                updateOrderSummary(0);
-                document.getElementById('final-total-display').textContent = `$${(window.PRODUCT_SUBTOTAL_CENTS / 100).toFixed(2)} AUD`;
+                deliveryFeeAud = 0;
             }
             
-            // Re-check submit button enablement state based on postcode validity
-            // This relies on the card element 'change' listener logic being able to access the zip value
+            updateOrderSummary(deliveryFeeAud);
+            
             const cardElement = document.getElementById('card-element');
             if (cardElement && cardElement.children.length > 0) {
-                // We assume the card element state is handled by Stripe.js events
-                // For now, we only ensure the zip is valid here.
-                // The Stripe 'change' event will re-enable based on card completion.
-                // We keep it disabled if zip is invalid.
+                // Ensure form can only be submitted if zip is valid
                 submitButton.disabled = !isValidZip;
             }
         }
@@ -234,13 +256,11 @@
         // 1. Initialize Firebase and Authenticate
         async function initializeFirebase() {
             try {
-                console.log("Attempting Firebase initialization...");
-                
-                // Enable debug logging for more verbose console output
                 setLogLevel('debug'); 
+                console.log("Attempting Firebase initialization...");
 
                 if (!firebaseConfig || !firebaseConfig.apiKey) {
-                    const errorMsg = "Firebase configuration is missing or invalid. Check the apiKey field in the configuration.";
+                    const errorMsg = "Firebase configuration is missing or invalid.";
                     console.error("Configuration Error:", errorMsg, { config: firebaseConfig });
                     throw new Error(errorMsg);
                 }
@@ -256,8 +276,8 @@
                         authStatusElement.className = 'text-center text-sm p-2 rounded-lg bg-green-100 text-green-700';
                         
                         // Initial calculation and listeners setup
-                        calculateDelivery(); 
-                        document.getElementById('zip').addEventListener('input', calculateDelivery);
+                        calculateDeliveryEstimate(); 
+                        document.getElementById('zip').addEventListener('input', calculateDeliveryEstimate);
 
                         initializeStripe(); // Initialize Stripe only after Firebase is ready
                         
@@ -271,7 +291,6 @@
                 });
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
-                // This is the message that appears in the UI
                 authStatusElement.textContent = `Error: Cannot connect to database.`;
                 authStatusElement.className = 'text-center text-sm p-2 rounded-lg bg-red-100 text-red-700';
             }
@@ -279,7 +298,6 @@
 
         // 2. Stripe Setup
         function initializeStripe() {
-            // IMPORTANT: Replace this with your actual Stripe Publishable Key
             const stripePublishableKey = 'pk_test_51O7c7wJ1Gz7cR3z3sW2yT8oV6nG3kB0xV0iT7vW1tZ2mX6qT9b4k3pYlX2fG0wW8lR6pYt0tZ4uP0yF3'; 
             
             const stripe = Stripe(stripePublishableKey);
@@ -313,42 +331,29 @@
             event.preventDefault();
             if (!userId) return displayMessage("Authentication not complete. Please wait.", true);
             
-            const zipInput = document.getElementById('zip');
-            if (zipInput.value.length !== 4) {
-                 return displayMessage("Please enter a valid 4-digit Australian Postcode to calculate delivery.", true);
+            const customer = getCustomerData();
+            if (customer.postcode.length !== 4) {
+                 return displayMessage("Please enter a valid 4-digit Australian Postcode.", true);
             }
             
             showProcessing(true);
             
             let orderDocRef;
+            let grandTotalAud = 0;
 
             try {
-                // A. Prepare all order details
-                const customerName = document.getElementById('name').value;
-                const customerEmail = document.getElementById('email').value;
-                const customerPhone = document.getElementById('phone').value;
-                const shippingAddress = {
-                    address: document.getElementById('address').value,
-                    city: document.getElementById('city').value,
-                    zip: document.getElementById('zip').value
-                };
+                // A. Prepare Data for Server
+                const trolley = getTrolleyData();
                 
-                // Construct the final items array for database
-                const finalItems = [
-                    { name: "Product Subtotal (from trolley.html)", price: window.PRODUCT_SUBTOTAL_CENTS },
-                    { name: "Delivery Charge", price: window.DELIVERY_CHARGE_CENTS }
-                ];
-
-
-                // B. Create the Order in Firestore (Simulating Supabase 'orders' table - Status: PENDING)
+                // B. Create the Order in Firestore (Status: PENDING)
+                // NOTE: We only have estimated prices here. The definitive price is returned by the server.
                 const newOrder = {
                     customerId: userId,
-                    customerName: customerName,
-                    customerEmail: customerEmail,
-                    customerPhone: customerPhone,
-                    shippingAddress: shippingAddress,
-                    items: finalItems, 
-                    amount: window.ORDER_TOTAL_CENTS, 
+                    customerName: customer.name,
+                    customerEmail: customer.email,
+                    shippingAddress: customer, // Save the full customer object
+                    items: trolley, 
+                    amountEstimate: PRODUCT_SUBTOTAL_AUD, 
                     status: 'PENDING',
                     createdAt: new Date(),
                     lastUpdated: new Date()
@@ -357,30 +362,51 @@
                 orderDocRef = await addDoc(collection(db, publicOrdersPath), newOrder);
                 const orderId = orderDocRef.id;
 
-                displayMessage(`Order created: ${orderId}. Requesting payment intent...`, false, 'bg-blue-100 text-blue-700');
+                displayMessage(`Order created in Firestore: ${orderId}. Requesting final total and payment intent...`, false, 'bg-blue-100 text-blue-700');
                 
-                // C. Fetch the Client Secret from Node.js Server
+                // C. Fetch the Client Secret and definitive Total from Node.js Server
+                // CRITICAL FIX: Sending the required {trolley, customer} payload
                 const response = await fetch(window.serverUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amountInCents: window.ORDER_TOTAL_CENTS, orderId: orderId })
+                    body: JSON.stringify({ 
+                        trolley: trolley, 
+                        customer: customer // Send all customer details
+                    })
                 });
 
                 const data = await response.json();
 
                 if (data.error) {
+                     // If server returns error (e.g., postcode out of zone), update Firestore order to FAILED
+                    await updateDoc(doc(db, publicOrdersPath, orderId), {
+                        status: 'FAILED_SERVER_REJECT',
+                        serverError: data.error,
+                        lastUpdated: new Date()
+                    });
                     throw new Error(data.error);
                 }
 
                 const clientSecret = data.clientSecret;
-
+                // Use the grandTotal returned by the server (security source of truth)
+                grandTotalAud = data.grandTotal; 
+                const amountInCents = Math.round(grandTotalAud * 100);
+                
+                // Update the Firestore order with the final price and PI details before confirmation
+                 await updateDoc(doc(db, publicOrdersPath, orderId), {
+                        amountFinal: amountInCents,
+                        orderNumber: data.orderNumber, // Use the generated order number from server
+                        stripePaymentIntentId: clientSecret.split('_secret')[0], // Extract PI ID from secret
+                        lastUpdated: new Date()
+                    });
+                
                 // D. Confirm Payment with Stripe
                 const result = await stripe.confirmCardPayment(clientSecret, {
                     payment_method: {
                         card: card,
                         billing_details: { 
-                            name: customerName,
-                            email: customerEmail,
+                            name: customer.name,
+                            email: customer.email,
                         },
                     }
                 });
@@ -397,7 +423,6 @@
                     // Payment succeeded, update status to PAID
                     await updateDoc(doc(db, publicOrdersPath, orderId), {
                         status: 'PAID',
-                        stripePaymentIntentId: result.paymentIntent.id,
                         lastUpdated: new Date()
                     });
                     
@@ -411,17 +436,11 @@
 
             } catch (error) {
                 console.error('[Checkout Error]', error);
-                
-                // If an error occurred before or during payment (e.g., server down), mark the order as failed if it exists
-                if (orderDocRef) {
-                     await updateDoc(doc(db, publicOrdersPath, orderDocRef.id), {
-                        status: 'FAILED_API_ERROR',
-                        lastUpdated: new Date(),
-                        serverError: error.message
-                    });
-                }
                 displayMessage(`System Error: ${error.message}. Ensure 'server.js' is running.`, true);
             } finally {
+                // Update UI display using the server-calculated total before hiding spinner
+                const totalDollarsDisplay = grandTotalAud > 0 ? grandTotalAud.toFixed(2) : PRODUCT_SUBTOTAL_AUD.toFixed(2);
+                document.getElementById('final-total-display').textContent = `$${totalDollarsDisplay} AUD`;
                 showProcessing(false);
             }
         }
@@ -434,10 +453,10 @@
             submitButton.disabled = isProcessing;
             spinner.classList.toggle('hidden', !isProcessing);
             
-            // Only update button text if not processing, to avoid visual jump
             if (!isProcessing) {
-                const totalDollars = (window.ORDER_TOTAL_CENTS / 100).toFixed(2);
-                buttonText.textContent = `Pay $${totalDollars}`;
+                // Use the displayed total for button text
+                const totalDollars = document.getElementById('final-total-display').textContent.replace('$', '').replace(' AUD', '');
+                buttonText.textContent = `Pay ${totalDollars}`;
             } else {
                 buttonText.textContent = 'Processing...';
             }
