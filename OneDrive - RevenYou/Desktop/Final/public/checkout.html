@@ -426,7 +426,7 @@
                 console.error("Firebase Initialization Error:", error);
                 
                 // Enhanced message to hint at configuration issue
-                const displayMsg = error.message.includes("Configuration Error") 
+                const displayMsg = error.message.includes("Firebase configuration is missing") 
                     ? `Config Error: Missing API Key. Ensure Firebase config is supplied.` 
                     : `Error: Cannot connect to database. (Details: ${error.message})`;
 
