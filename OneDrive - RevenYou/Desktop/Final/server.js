@@ -24,7 +24,7 @@ const PORT = process.env.PORT || 3000;
 // --- Middlewares ---
 app.use(cors());
 // Serve static files from the 'public' directory (assuming frontend files are here)
-app.use(express.static(path.join(__dirname, 'public'))); 
+app.use(express.static(path.join(__dirname, 'public'))); 
 
 // ------------------- POSTCODES & DELIVERY FEE LOGIC (COMPREHENSIVE) -------------------
 
@@ -69,10 +69,10 @@ const POSTCODE_DISTANCES = ALL_POSTCODES.reduce((acc, pc, i) => {
 }, {});
 
 const DISTANCE_FEES = [
-    { maxKm: 10, fee: 10 },
-    { maxKm: 20, fee: 15 },
-    { maxKm: 30, fee: 20 },
-    { maxKm: Infinity, fee: 25 }
+    { maxKm: 10, fee: 10 },
+    { maxKm: 20, fee: 15 },
+    { maxKm: 30, fee: 20 },
+    { maxKm: Infinity, fee: 25 }
 ];
 
 /**
@@ -82,57 +82,57 @@ const DISTANCE_FEES = [
  * @returns {number} The calculated fee or -1 for out-of-service area.
  */
 function getDeliveryFee(postcode) {
-    const dist = POSTCODE_DISTANCES[Number(postcode)];
-    // If postcode is not listed (out of service area), return -1
-    if (dist === undefined) return -1; 
-    
-    for(const df of DISTANCE_FEES){
-        if(dist <= df.maxKm) return df.fee;
-    }
-    // Fallback (should be covered by the Infinity tier)
-    return 25; 
+    const dist = POSTCODE_DISTANCES[Number(postcode)];
+    // If postcode is not listed (out of service area), return -1
+    if (dist === undefined) return -1; 
+    
+    for(const df of DISTANCE_FEES){
+        if(dist <= df.maxKm) return df.fee;
+    }
+    // Fallback (should be covered by the Infinity tier)
+    return 25; 
 }
 
 // ------------------- STRIPE WEBHOOK ENDPOINT (CRITICAL) -------------------
 // Must use raw body parser to verify signature
 app.post('/api/stripe-webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    let event;
+    const sig = req.headers['stripe-signature'];
+    let event;
 
-    try {
-        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err) {
-        console.error(`⚠️ Webhook signature verification failed.`, err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err) {
+        console.error(`⚠️ Webhook signature verification failed.`, err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
 
-    // Handle the event
-    if (event.type === 'payment_intent.succeeded') {
-        const paymentIntentId = event.data.object.id;
-        
-        // Update order status in Supabase
-        const { error } = await supabase
-            .from("orders")
-            .update({ status: "Successful", stripe_status: "succeeded" })
-            .eq("stripe_id", paymentIntentId); 
+    // Handle the event
+    if (event.type === 'payment_intent.succeeded') {
+        const paymentIntentId = event.data.object.id;
+        
+        // Update order status in Supabase
+        const { error } = await supabase
+            .from("orders")
+            .update({ status: "Successful", stripe_status: "succeeded" })
+            .eq("stripe_id", paymentIntentId); 
 
-        if (error) {
-            console.error("Supabase update failed for successful PI:", error);
-            return res.status(500).json({ received: true, error: "Database Update Failed" }); 
-        }
-        console.log(`✅ Order status updated to Successful for PI: ${paymentIntentId}`);
+        if (error) {
+            console.error("Supabase update failed for successful PI:", error);
+            return res.status(500).json({ received: true, error: "Database Update Failed" }); 
+        }
+        console.log(`✅ Order status updated to Successful for PI: ${paymentIntentId}`);
 
-    } else if (event.type === 'payment_intent.payment_failed') {
-        const paymentIntentId = event.data.object.id;
-        
-        // Update order to 'Failed' status
-        await supabase
-            .from("orders")
-            .update({ status: "Failed", stripe_status: "failed" })
-            .eq("stripe_id", paymentIntentId);
-    }
+    } else if (event.type === 'payment_intent.payment_failed') {
+        const paymentIntentId = event.data.object.id;
+        
+        // Update order to 'Failed' status
+        await supabase
+            .from("orders")
+            .update({ status: "Failed", stripe_status: "failed" })
+            .eq("stripe_id", paymentIntentId);
+    }
 
-    res.json({ received: true });
+    res.json({ received: true });
 });
 
 
@@ -141,101 +141,102 @@ app.use(express.json()); // Use Express's built-in JSON body parser for all othe
 
 // ------------------- CREATE PAYMENT INTENT (REVISED) -------------------
 app.post('/api/create-payment-intent', async (req, res) => {
-    try {
-        const { trolley, customer } = req.body;
-        // Destructure all customer fields, including the new deliverySlot
-        const { name, email, mobile, address, suburb, state, postcode, deliverySlot } = customer;
-        
-        if (!trolley || trolley.length === 0) return res.status(400).json({ error: 'Trolley is empty' });
+    try {
+        const { trolley, customer } = req.body;
+        // Destructure all customer fields, including the deliverySlot
+        const { name, email, mobile, address, suburb, state, postcode, deliverySlot } = customer;
+        
+        if (!trolley || trolley.length === 0) return res.status(400).json({ error: 'Trolley is empty' });
 
-        const deliveryFee = getDeliveryFee(postcode);
+        const deliveryFee = getDeliveryFee(postcode);
 
-        // CRITICAL: Check if postcode is outside the service area
-        if (deliveryFee === -1) return res.status(400).json({ error: `Sorry, delivery is not available in postcode ${postcode}.` });
+        // CRITICAL: Check if postcode is outside the service area
+        if (deliveryFee === -1) return res.status(400).json({ error: `Sorry, delivery is not available in postcode ${postcode}.` });
 
-        const subtotal = trolley.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
-        const grandTotal = subtotal + deliveryFee;
-        const amountInCents = Math.round(grandTotal * 100);
+        const subtotal = trolley.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+        const grandTotal = subtotal + deliveryFee;
+        const amountInCents = Math.round(grandTotal * 100);
 
-        // Create Stripe Payment Intent
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: amountInCents,
-            currency: 'aud',
-            automatic_payment_methods: { enabled: true },
-            metadata: { customer_name: name, email: email }
-        });
-        
-        // --- START SERIAL NUMBER GENERATION ---
-        let orderNumber; 
+        // Create Stripe Payment Intent
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: amountInCents,
+            currency: 'aud',
+            automatic_payment_methods: { enabled: true },
+            metadata: { customer_name: name, email: email }
+        });
+        
+        // --- START SERIAL NUMBER GENERATION ---
+        let orderNumber; 
 
-        // Call the Supabase function to get the next serial number
-        const { data: serialResult, error: serialError } = await supabase
-            .rpc('get_next_serial_number');
+        // Call the Supabase function to get the next serial number
+        const { data: serialResult, error: serialError } = await supabase
+            .rpc('get_next_serial_number');
 
-        if (serialError || !serialResult) {
-            console.error('Supabase serial number error:', serialError || 'No serial number returned');
-            // Fallback to random number for resilience
-            orderNumber = `GGO-ERR-${Math.floor(10000 + Math.random() * 90000)}`;
-        } else {
-            const serialNumber = serialResult;
-            // Format the number with leading zeros (e.g., 1 -> 0001, 10 -> 0010)
-            const paddedNumber = String(serialNumber).padStart(4, '0');
-            orderNumber = `GGO-${paddedNumber}`;
-        }
-        // --- END SERIAL NUMBER GENERATION ---
+        if (serialError || !serialResult) {
+            console.error('Supabase serial number error:', serialError || 'No serial number returned');
+            // Fallback to random number for resilience
+            orderNumber = `GGO-ERR-${Math.floor(10000 + Math.random() * 90000)}`;
+        } else {
+            const serialNumber = serialResult;
+            // Format the number with leading zeros (e.g., 1 -> 0001, 10 -> 0010)
+            const paddedNumber = String(serialNumber).padStart(4, '0');
+            orderNumber = `GGO-${paddedNumber}`;
+        }
+        // --- END SERIAL NUMBER GENERATION ---
 
-        // Insert order into Supabase with PENDING status
-        const { error } = await supabase.from('orders').insert([{
-            order_number: orderNumber,
-            customer_name: name,
-            email: email,
-            phone: mobile, 
-            address_line1: address, 
-            address_line2: null, 
-            suburb: suburb,
-            postcode: postcode,
-            state: state,
-            country: 'Australia', 
-            delivery_slot: deliverySlot, 
-            items: JSON.stringify(trolley),
-            delivery_fee: deliveryFee, 
-            total_amount: grandTotal, 
-            stripe_id: paymentIntent.id, 
-            status: 'pending',
-        }]);
+        // Insert order into Supabase with PENDING status
+        // delivery_slot field will now store the new format (e.g., "2025-12-01|Anytime")
+        const { error } = await supabase.from('orders').insert([{
+            order_number: orderNumber,
+            customer_name: name,
+            email: email,
+            phone: mobile, 
+            address_line1: address, 
+            address_line2: null, 
+            suburb: suburb,
+            postcode: postcode,
+            state: state,
+            country: 'Australia', 
+            delivery_slot: deliverySlot, // The new slot value is persisted here
+            items: JSON.stringify(trolley),
+            delivery_fee: deliveryFee, 
+            total_amount: grandTotal, 
+            stripe_id: paymentIntent.id, 
+            status: 'pending',
+        }]);
 
-        if (error) {
-            console.error('Supabase insert error:', error);
-            return res.status(500).json({ error: 'Failed to save order details.' });
-        }
+        if (error) {
+            console.error('Supabase insert error:', error);
+            return res.status(500).json({ error: 'Failed to save order details.' });
+        }
 
-        res.json({ clientSecret: paymentIntent.client_secret, orderNumber });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error during payment intent creation.' });
-    }
+        res.json({ clientSecret: paymentIntent.client_secret, orderNumber });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error during payment intent creation.' });
+    }
 });
 
 // ------------------- GET ORDERS ENDPOINT (ADMIN) -------------------
 app.get('/api/get-orders', async (req, res) => {
-    try {
-        // Securely fetch all orders using the Service Role Key
-        const { data: orders, error } = await supabase
-            .from("orders")
-            .select("*")
-            .order("created_at", { ascending: false });
+    try {
+        // Securely fetch all orders using the Service Role Key
+        const { data: orders, error } = await supabase
+            .from("orders")
+            .select("*")
+            .order("created_at", { ascending: false });
 
-        if (error) {
-            console.error("Supabase fetch error:", error);
-            return res.status(500).json({ error: "Failed to fetch orders for admin." });
-        }
+        if (error) {
+            console.error("Supabase fetch error:", error);
+            return res.status(500).json({ error: "Failed to fetch orders for admin." });
+        }
 
-        res.status(200).json({ orders });
+        res.status(200).json({ orders });
 
-    } catch (err) {
-        console.error("Admin API error:", err);
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) {
+        console.error("Admin API error:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 
@@ -243,12 +244,12 @@ app.get('/api/get-orders', async (req, res) => {
 
 // Only run app.listen() locally for standard development
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-    app.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
-        console.log(`Test Checkout at http://localhost:${PORT}/checkout.html`);
-    });
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`Test Checkout at http://localhost:${PORT}/checkout.html`);
+    });
 }
 
-// **CRITICAL VERCEL FIX:** Export the Express app instance. 
+// **CRITICAL VERCEL FIX:** Export the Express app instance. 
 // Vercel will wrap this export in its serverless function.
 module.exports = app;
