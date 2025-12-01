@@ -1,279 +1,599 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure E-commerce Checkout</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Inter font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .StripeElement {
-            box-sizing: border-box; height: 44px; padding: 12px;
-            border: 1px solid #d1d5db; border-radius: 0.5rem;
-            background-color: white; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            transition: all 150ms ease;
-        }
-        .StripeElement--focus { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.5); border-color: #3b82f6; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GroceryGo — Checkout</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Stripe -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f3f4f6; }
+    .card { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 8px 24px rgba(16,24,40,0.06); }
+    .muted { color:#6b7280; font-size:0.95rem; }
+    /* Stripe payment element wrapper styles to avoid layout shift */
+    #payment-element > div { background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #e6e9ef; }
+    .hidden { display:none !important; }
+  </style>
 </head>
-<body class="min-h-screen flex items-start justify-center p-6">
+<body>
+  <div class="max-w-6xl mx-auto p-4">
+    <a href="./trolley.html" class="text-sm text-gray-600 hover:text-green-600 mb-4 inline-flex items-center">
+      ← Back to Trolley
+    </a>
 
-    <div class="w-full max-w-xl bg-white shadow-2xl rounded-xl p-8 space-y-8 border border-gray-100 mt-10">
-        <h1 class="text-3xl font-bold text-gray-900 text-center border-b pb-4">
-            Order Payment
-        </h1>
-        
-        <!-- Order Summary -->
-        <div class="bg-indigo-50 p-5 rounded-lg border border-indigo-200">
-            <h2 class="text-xl font-semibold text-indigo-800 mb-2">Your Order</h2>
-            <div id="order-details" class="space-y-1">
-                <div class="flex justify-between"><span>Product X</span><span>$10.00</span></div>
-                <div class="flex justify-between"><span>Delivery</span><span>$9.99</span></div>
+    <h1 class="text-3xl font-bold mb-4">🛒 GroceryGo — Secure Checkout</h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- left column -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- status -->
+        <div id="statusMessage" class="card hidden error-message text-red-700"></div>
+
+        <!-- Contact -->
+        <div class="card">
+          <h2 class="text-lg font-semibold mb-3">Contact & Customer Details</h2>
+          <p class="muted mb-3">We'll send the receipt to this email.</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-sm font-medium">Full name</label>
+              <input id="customerName" class="w-full mt-1 p-3 border rounded-lg" placeholder="Jane Smith" value="Test Customer" />
             </div>
-            <div class="border-t border-indigo-300 my-3"></div>
-            <div class="flex justify-between font-extrabold text-2xl text-indigo-700">
-                <span>TOTAL</span>
-                <span>$19.99 USD</span>
+            <div>
+              <label class="text-sm font-medium">Phone</label>
+              <input id="customerMobile" class="w-full mt-1 p-3 border rounded-lg" placeholder="0412 345 678" value="0412345678" />
             </div>
+            <div>
+              <label class="text-sm font-medium">Email</label>
+              <input id="customerEmail" type="email" class="w-full mt-1 p-3 border rounded-lg" placeholder="you@example.com" value="test@example.com" />
+            </div>
+            <div></div>
+          </div>
         </div>
-        
-        <!-- Payment Form -->
-        <form id="payment-form" class="space-y-6">
-            
-            <div id="auth-status" class="text-center text-sm p-2 rounded-lg">Authenticating...</div>
-            
-            <!-- Customer Info -->
+
+        <!-- Delivery -->
+        <div class="card">
+          <h2 class="text-lg font-semibold mb-3">Delivery Address & Slot</h2>
+
+          <div class="space-y-3">
             <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Billing Name</label>
-                <input id="name" type="text" value="Jane Doe" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+              <label class="text-sm font-medium">Address line 1</label>
+              <input id="customerAddress" class="w-full mt-1 p-3 border rounded-lg" placeholder="123 Queen St" value="123 Queen St" />
             </div>
 
-            <!-- Stripe Payment Element Container -->
-            <div>
-                <label for="card-element" class="block text-sm font-medium text-gray-700 mb-2">
-                    Card Details
-                </label>
-                <div id="card-element"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm font-medium">Suburb</label>
+                <input id="customerSuburb" class="w-full mt-1 p-3 border rounded-lg" placeholder="Brisbane" value="Brisbane" />
+              </div>
+              <div>
+                <label class="text-sm font-medium">State</label>
+                <select id="customerState" class="w-full mt-1 p-3 border rounded-lg">
+                  <option>QLD</option>
+                  <option>NSW</option>
+                  <option>VIC</option>
+                </select>
+              </div>
             </div>
 
-            <!-- Message Box -->
-            <div id="message-box" class="hidden p-4 rounded-lg text-sm" role="alert">
-                <p id="message-text" class="font-medium"></p>
+            <div>
+              <label class="text-sm font-medium">Postcode</label>
+              <input id="customerPostcode" class="w-full mt-1 p-3 border rounded-lg" placeholder="4000" value="4000" />
+              <div id="serviceAreaMessage" class="mt-2 p-2 rounded text-sm hidden"></div>
             </div>
-            
-            <button id="submit-button" type="submit" 
-                    class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-lg transition duration-150 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 disabled:opacity-50"
-                    disabled>
-                <span id="button-text">Pay $19.99</span>
-                <div id="spinner" class="hidden inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white align-middle mr-2"></div>
-            </button>
-        </form>
+
+            <div>
+              <label class="text-sm font-medium">Delivery Time Slot</label>
+              <select id="deliverySlot" class="w-full mt-1 p-3 border rounded-lg"></select>
+              <p class="muted mt-2">Slots are rotated by postcode group. "Anytime" option is offered for today if the 8-hour lead time permits.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment -->
+        <div class="card">
+          <h2 class="text-lg font-semibold mb-3">Payment</h2>
+
+          <div class="space-y-3">
+            <div id="wallet-button-wrapper" class="hidden">
+              <!-- PaymentRequest button (Apple Pay / Google Pay) will mount here when available -->
+              <div id="payment-request-button"></div>
+              <div class="muted text-sm mt-2">Tap the button above to pay with Apple Pay / Google Pay (if available).</div>
+              <hr class="my-3" />
+            </div>
+
+            <div id="payment-element-container" class="hidden">
+              <div id="payment-element"></div>
+            </div>
+
+            <div class="flex gap-3">
+              <button id="getPaymentOptions" class="flex-1 bg-green-600 text-white p-3 rounded-lg font-semibold">Proceed to Payment</button>
+              <button id="backToTrolley" class="flex-1 bg-gray-100 text-gray-700 p-3 rounded-lg">Back to Trolley</button>
+            </div>
+
+            <button id="placeOrder" class="w-full mt-2 bg-amber-500 text-white p-3 rounded-lg hidden font-semibold">Place Order & Pay</button>
+          </div>
+        </div>
+
+        <!-- OTP testing -->
+        <div class="card">
+          <h3 class="font-semibold mb-2">OTP (Testing)</h3>
+          <div class="flex gap-3 items-center">
+            <button id="generateOTP" class="bg-red-500 text-white p-2 rounded">Generate OTP</button>
+            <div id="otpDisplay" class="font-medium text-red-600"></div>
+          </div>
+          <div class="mt-3">
+            <input id="otpInput" placeholder="Enter OTP" class="p-3 border rounded w-full" />
+          </div>
+        </div>
+      </div>
+
+      <!-- right column: order summary -->
+      <div class="space-y-4">
+        <div class="card summary-sticky">
+          <h3 class="text-xl font-bold mb-2">Order Summary</h3>
+          <div class="text-gray-700">
+            <div class="flex justify-between py-2 border-b"><span>Subtotal</span><span id="subtotalAmount">$0.00</span></div>
+            <div class="flex justify-between py-2 border-b"><span>Delivery Fee</span><span id="deliveryFee">$0.00</span></div>
+            <div class="flex justify-between pt-3 text-lg font-bold"><span>Grand Total</span><span id="grandTotalAmount">$0.00</span></div>
+          </div>
+
+          <div class="mt-4 text-sm text-gray-600">
+            <p><strong>Note:</strong> This checkout uses your server to create the Stripe PaymentIntent and create the order in Supabase (status: pending). Payment success will be picked up by your webhook and update the order status.</p>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <!-- Load Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, addDoc, doc, updateDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // Load Stripe.js library
-        const stripeScript = document.createElement('script');
-        stripeScript.src = "https://js.stripe.com/v3/";
-        document.head.appendChild(stripeScript);
-        
-        // --- Globals ---
-        window.ORDER_TOTAL_CENTS = 1999;
-        window.ORDER_ITEMS = [ { name: "Product X", price: 1000 }, { name: "Delivery", price: 999 } ];
-        window.serverUrl = 'http://localhost:3000/create-payment-intent';
-        
-        // Firebase Setup
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+  </div>
 
-        let db, auth, userId;
-        const authStatusElement = document.getElementById('auth-status');
+<script type="module">
+/* ====== CONFIG ====== */
+const STRIPE_PUBLISHABLE_KEY = "pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l";
+const CREATE_PAYMENT_INTENT_ENDPOINT = '/api/create-payment-intent';
+const LS_KEY = 'grocerygo_trolley'; // your trolley key in localStorage
 
-        // Firestore paths
-        const publicOrdersPath = `/artifacts/${appId}/public/data/orders`;
+/* ====== ELEMENTS ====== */
+const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+const nameEl = document.getElementById('customerName');
+const emailEl = document.getElementById('customerEmail');
+const mobileEl = document.getElementById('customerMobile');
+const addressEl = document.getElementById('customerAddress');
+const suburbEl = document.getElementById('customerSuburb');
+const stateEl = document.getElementById('customerState');
+const postcodeEl = document.getElementById('customerPostcode');
+const deliverySlotEl = document.getElementById('deliverySlot');
 
-        // 1. Initialize Firebase and Authenticate
-        async function initializeFirebase() {
-            try {
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+const subtotalSpan = document.getElementById('subtotalAmount');
+const feeSpan = document.getElementById('deliveryFee');
+const totalSpan = document.getElementById('grandTotalAmount');
 
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        authStatusElement.textContent = `User ID: ${userId.substring(0, 8)}... (Authenticated)`;
-                        authStatusElement.className = 'text-center text-sm p-2 rounded-lg bg-green-100 text-green-700';
-                        initializeStripe(); // Initialize Stripe only after Firebase is ready
-                    } else {
-                        if (initialAuthToken) {
-                             await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                             await signInAnonymously(auth);
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase Initialization Error:", error);
-                authStatusElement.textContent = `Error: Cannot connect to database.`;
-                authStatusElement.className = 'text-center text-sm p-2 rounded-lg bg-red-100 text-red-700';
-            }
+const statusMessage = document.getElementById('statusMessage');
+const serviceAreaMessage = document.getElementById('serviceAreaMessage');
+
+const getPaymentBtn = document.getElementById('getPaymentOptions');
+const placeOrderBtn = document.getElementById('placeOrder');
+const backToTrolleyBtn = document.getElementById('backToTrolley');
+
+const paymentContainer = document.getElementById('payment-element-container');
+const paymentRequestButtonWrapper = document.getElementById('wallet-button-wrapper');
+const paymentRequestButtonMount = document.getElementById('payment-request-button');
+
+const otpDisplay = document.getElementById('otpDisplay');
+const generateOTPBtn = document.getElementById('generateOTP');
+const otpInput = document.getElementById('otpInput');
+
+let elements; // stripe elements
+let clientSecret = null;
+window.orderNumber = null;
+let currentOTP = null;
+
+/* ====== LOGISTICS CONFIG (kept aligned to server.js) ====== */
+const GROUP_A = [4300,4301,4303,4304,4305,4306,4307,4308,4311,4114,4118,4124,4125,4127,4128,4129,4131,4132,4133,4207,4280,4285,4290];
+const GROUP_B = [4169,4170,4171,4172,4173,4174,4178,4179,4157,4158,4159,4160,4161,4163,4164,4165];
+const GROUP_C = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4520];
+
+// SLOTS
+const SLOTS = ["8:00-11:00 (Early)", "11:00-15:00 (Mid)", "15:00-18:00 (Late)"];
+
+/* Mirror distances used on the server for UX display (not authoritative) */
+const POSTCODE_DISTANCES = Object.fromEntries([...new Set([...GROUP_A,...GROUP_B,...GROUP_C])].map((p,i)=>{
+  if(GROUP_A.includes(p)) return [p, 30 + (i % 5)];
+  if(GROUP_B.includes(p)) return [p, 15 + (i % 5)];
+  return [p, 1 + (i % 10)];
+}));
+
+const DISTANCE_FEES = [
+  { maxKm: 10, fee: 10 },
+  { maxKm: 20, fee: 15 },
+  { maxKm: 30, fee: 20 },
+  { maxKm: Infinity, fee: 25 }
+];
+
+function getPostcodeGroup(pc){ const p=Number(pc); if(GROUP_A.includes(p)) return 'A'; if(GROUP_B.includes(p)) return 'B'; if(GROUP_C.includes(p)) return 'C'; return null; }
+function formatCurrency(n){ return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(Number(n||0)); }
+function calculateDeliveryFee(pc){ const d = POSTCODE_DISTANCES[Number(pc)]; if(d === undefined) return -1; for(const tier of DISTANCE_FEES) if(d <= tier.maxKm) return tier.fee; return 25; }
+
+/* ====== Cart handling (localStorage trolley) ====== */
+function loadCart(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return [];
+    return JSON.parse(raw) || [];
+  } catch(e){
+    console.error("parse cart failed", e);
+    return [];
+  }
+}
+const trolley = loadCart();
+let subtotal = trolley.reduce((s,i)=> s + (Number(i.price||0) * Number(i.quantity||1)), 0) || 0;
+if(!subtotal) {
+  // if trolley empty, try fallback from a saved subtotal key (your existing code uses grocerygo_subtotal)
+  const saved = localStorage.getItem('grocerygo_subtotal');
+  if(saved) subtotal = Number(saved) || 0;
+}
+
+/* ====== UI helpers ====== */
+function showError(msg){
+  statusMessage.classList.remove('hidden'); statusMessage.classList.add('card'); statusMessage.innerText = msg;
+}
+function clearError(){
+  statusMessage.classList.add('hidden'); statusMessage.innerText = '';
+}
+function showServiceOK(msg){
+  serviceAreaMessage.classList.remove('hidden'); serviceAreaMessage.classList.add('service-ok'); serviceAreaMessage.innerText = msg;
+}
+function showServiceWarn(msg){
+  serviceAreaMessage.classList.remove('hidden'); serviceAreaMessage.classList.add('service-warn'); serviceAreaMessage.innerText = msg;
+}
+
+/* ====== Delivery slot & summary logic (mirrors server rotation + 8 hour lead time) ====== */
+function getDayIndex(date = new Date()){ return date.getDay(); } // 0=Sun .. 6=Sat
+
+function getAvailableSlotForGroupByDay(group, day){
+  // day: 1..6 (Mon..Sat). If day=0 or not serviceable, return null.
+  if(day === 0) return null;
+  // rotation base (day - 1) % 3
+  const rotationBase = (day - 1) % 3;
+  if(group === 'A') return SLOTS[rotationBase];           // A: rotationBase
+  if(group === 'B') return SLOTS[(rotationBase + 1) % 3]; // B shifted
+  if(group === 'C') return SLOTS[(rotationBase + 2) % 3]; // C shifted
+  return null;
+}
+
+function getNextAvailableSlots(pc){
+  const slots = [];
+  const today = new Date();
+  const cutoff = new Date(today.getTime() + 8 * 60 * 60 * 1000); // 8 hour lead
+  const MAX_AHEAD = 6;
+  const group = getPostcodeGroup(pc);
+
+  // Today Anytime option if within 8-hour lead and within delivery period
+  const todayDow = today.getDay();
+  if(todayDow >= 1 && todayDow <= 6){
+    const endOfDay = new Date(today); endOfDay.setHours(18,0,0,0);
+    if(cutoff.getTime() < endOfDay.getTime()){
+      const dateString = today.toLocaleDateString('en-AU', { month: 'numeric', day: 'numeric' });
+      const dayName = today.toLocaleDateString('en-AU', { weekday: 'long' });
+      slots.push({ value: `${today.toISOString().split('T')[0]}|Anytime`, text: `${dayName}, ${dateString} - Anytime (8:00 AM - 6:00 PM)` });
+    }
+  }
+
+  for(let i=0;i<=MAX_AHEAD;i++){
+    const check = new Date(); check.setDate((new Date()).getDate() + i);
+    const dow = check.getDay();
+    if(dow === 0) continue; // skip Sunday
+    const available = getAvailableSlotForGroupByDay(group, dow);
+    if(!available) continue;
+    // enforce 8-hour lead time for same-day slot
+    let ok = true;
+    if(i === 0){
+      const slotStartHour = parseInt(available.split(':')[0],10);
+      const slotStart = new Date(check); slotStart.setHours(slotStartHour,0,0,0);
+      if(slotStart.getTime() < cutoff.getTime()) ok = false;
+    }
+    if(ok){
+      const dateString = check.toLocaleDateString('en-AU', { month:'numeric', day:'numeric' });
+      const dayName = check.toLocaleDateString('en-AU', { weekday:'long' });
+      slots.push({ value: `${check.toISOString().split('T')[0]}|${available}`, text: `${dayName}, ${dateString} - ${available}` });
+    }
+  }
+  return slots;
+}
+
+function updateSummaryUI(pcInput){
+  const pc = (pcInput||'').toString().trim();
+  const fee = calculateDeliveryFee(pc);
+  const total = subtotal + ((fee > 0) ? fee : 0);
+
+  // subtotal
+  subtotalSpan.innerText = formatCurrency(subtotal);
+
+  // service message & fee display
+  if(fee === -1){
+    showServiceWarn(`⚠️ Postcode ${pc || ''} is outside our delivery area.`);
+    feeSpan.innerText = 'N/A';
+    totalSpan.innerText = 'N/A';
+    getPaymentBtn.disabled = true;
+    deliverySlotEl.innerHTML = '';
+    const o = document.createElement('option'); o.textContent = 'Out of area'; o.disabled = true; deliverySlotEl.appendChild(o);
+    deliverySlotEl.disabled = true;
+    return;
+  } else {
+    showServiceOK(`✅ Service available for Group ${getPostcodeGroup(pc)} — approx ${POSTCODE_DISTANCES[Number(pc)].toFixed(1)} km — Fee: ${formatCurrency(fee)}`);
+    feeSpan.innerText = formatCurrency(fee);
+    totalSpan.innerText = formatCurrency(total);
+  }
+
+  // slots
+  const slots = getNextAvailableSlots(pc);
+  deliverySlotEl.innerHTML = '';
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = ''; defaultOpt.disabled = true; defaultOpt.selected = true;
+  defaultOpt.textContent = slots.length ? 'Select an available slot' : 'No slots available in the next 6 days';
+  deliverySlotEl.appendChild(defaultOpt);
+  slots.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.value; opt.textContent = s.text;
+    deliverySlotEl.appendChild(opt);
+  });
+  deliverySlotEl.disabled = slots.length === 0;
+
+  // enable proceed only if slot exists (and fee valid)
+  getPaymentBtn.disabled = (slots.length === 0);
+}
+
+/* Initialize */
+updateSummaryUI(postcodeEl.value);
+
+/* listeners */
+postcodeEl.addEventListener('input', e => updateSummaryUI(e.target.value));
+deliverySlotEl.addEventListener('change', ()=> {
+  const fee = calculateDeliveryFee(postcodeEl.value);
+  getPaymentBtn.disabled = fee === -1 || !deliverySlotEl.value;
+});
+
+/* OTP test */
+generateOTPBtn.addEventListener('click', ()=> {
+  currentOTP = Math.floor(1000 + Math.random()*9000);
+  otpDisplay.innerText = `Generated OTP: ${currentOTP}`;
+});
+
+/* Back to trolley */
+backToTrolleyBtn.addEventListener('click', (e)=> { e.preventDefault(); window.location.href = './trolley.html'; });
+
+/* ====== PAYMENT FLOW ====== */
+
+/**
+ * Called when the user clicks "Proceed to Payment".
+ * This will POST to /api/create-payment-intent (server creates PI + order row pending) and return clientSecret & orderNumber.
+ */
+getPaymentBtn.addEventListener('click', async (ev) => {
+  ev.preventDefault();
+  clearError();
+
+  // basic validation
+  const customer = {
+    name: nameEl.value.trim(),
+    email: emailEl.value.trim(),
+    mobile: mobileEl.value.trim(),
+    address: addressEl.value.trim(),
+    suburb: suburbEl.value.trim(),
+    state: stateEl.value,
+    postcode: postcodeEl.value.trim(),
+    deliverySlot: deliverySlotEl.value
+  };
+  if(Object.values(customer).some(v => !v)){
+    showError('Please fill all customer fields and select a delivery slot.');
+    return;
+  }
+  if(!trolley || !trolley.length){
+    showError('Your trolley is empty.');
+    return;
+  }
+
+  getPaymentBtn.disabled = true;
+  getPaymentBtn.innerText = 'Processing...';
+
+  try {
+    // Call your server endpoint to create the PaymentIntent and create order row as pending
+    const resp = await fetch(CREATE_PAYMENT_INTENT_ENDPOINT, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ trolley, customer })
+    });
+    const data = await resp.json();
+    if(!resp.ok){
+      showError(data?.error || 'Failed to create payment intent.');
+      getPaymentBtn.disabled = false;
+      getPaymentBtn.innerText = 'Proceed to Payment';
+      return;
+    }
+
+    // Received from server
+    clientSecret = data.clientSecret;
+    window.orderNumber = data.orderNumber;
+
+    // Initialize Stripe Elements with that clientSecret (no autolink/layout)
+    elements = stripe.elements({ clientSecret, appearance: { theme: 'stripe' } });
+    const paymentElement = elements.create('payment');
+    paymentElement.mount('#payment-element');
+
+    // Display payment area
+    paymentContainer.classList.remove('hidden');
+    paymentContainer.style.display = 'block';
+    paymentRequestButtonWrapper.classList.remove('hidden');
+
+    placeOrderBtn.classList.remove('hidden');
+    getPaymentBtn.classList.add('hidden');
+
+    // Disable form inputs now that we've created the pending order & PI
+    document.querySelectorAll('input, select, button').forEach(el => {
+      if(el === placeOrderBtn || el === document.getElementById('payment-request-button')) return;
+      // keep OTP controls enabled
+      el.disabled = true;
+    });
+
+    // Setup Payment Request Button (Apple/Google) — progressive enhancement
+    setupPaymentRequestButton(subtotal, calculateDeliveryFee(postcodeEl.value), clientSecret);
+  } catch(err){
+    console.error(err);
+    showError('Network/server error while creating payment intent.');
+    getPaymentBtn.disabled = false;
+    getPaymentBtn.innerText = 'Proceed to Payment';
+  }
+});
+
+/* Setup Payment Request (ApplePay / GooglePay) */
+async function setupPaymentRequestButton(subtotalValue, feeValue, clientSecretLocal){
+  // amount in cents
+  const amountCents = Math.round((Number(subtotalValue||0) + Number(feeValue||0)) * 100);
+
+  // Payment Request data
+  const paymentRequest = stripe.paymentRequest({
+    country: 'AU',
+    currency: 'aud',
+    total: {
+      label: 'GroceryGo Order Total',
+      amount: amountCents
+    },
+    requestPayerName: true,
+    requestPayerEmail: true
+  });
+
+  const prCan = await paymentRequest.canMakePayment();
+  if(prCan){
+    // create the PaymentRequestButton and mount it
+    const prButton = elements ? elements.create('paymentRequestButton', { paymentRequest }) : null;
+    if(prButton){
+      try {
+        prButton.mount('#payment-request-button');
+        paymentRequestButtonWrapper.classList.remove('hidden');
+      } catch(e){
+        // fallback: hide wallet button
+        paymentRequestButtonWrapper.classList.add('hidden');
+      }
+    } else {
+      // older browsers: try legacy mount via stripe-js
+      const prBtn = document.getElementById('payment-request-button');
+      if(prBtn) prBtn.style.display = 'none';
+    }
+
+    // When user completes the wallet flow, Stripe emits 'paymentmethod' event
+    paymentRequest.on('paymentmethod', async (ev) => {
+      // We will confirm payment using the clientSecret the server created earlier
+      try {
+        // Confirm the PaymentIntent using the provided payment method (without handling actions automatically).
+        const confirmResult = await stripe.confirmCardPayment(clientSecretLocal, {
+          payment_method: ev.paymentMethod.id
+        }, { handleActions: false });
+
+        if(confirmResult.error){
+          // Inform the browser/payment sheet of the failure
+          ev.complete('fail');
+          showError(confirmResult.error.message || 'Payment failed via wallet.');
+          placeOrderBtn.disabled = false;
+          return;
         }
 
-        // 2. Stripe Setup
-        function initializeStripe() {
-            // IMPORTANT: Replace this with your actual Stripe Publishable Key
-            const stripePublishableKey = 'pk_test_51O7c7wJ1Gz7cR3z3sW2yT8oV6nG3kB0xV0iT7vW1tZ2mX6qT9b4k3pYlX2fG0wW8lR6pYt0tZ4uP0yF3'; 
-            
-            const stripe = Stripe(stripePublishableKey);
-            const elements = stripe.elements();
-            const card = elements.create('card');
-            card.mount('#card-element');
-
-            const form = document.getElementById('payment-form');
-            const submitButton = document.getElementById('submit-button');
-            
-            submitButton.disabled = false; // Enable initially now that auth is done
-
-            card.on('change', function(event) {
-                submitButton.disabled = !event.complete;
-                if (event.error) {
-                    displayMessage(event.error.message, true);
-                } else {
-                    document.getElementById('message-box').classList.add('hidden');
-                }
-            });
-
-            form.addEventListener('submit', (e) => handlePayment(e, stripe, card));
-        }
-        
-        // 3. Payment Handling
-        async function handlePayment(event, stripe, card) {
-            event.preventDefault();
-            if (!userId) return displayMessage("Authentication not complete. Please wait.", true);
-            
-            showProcessing(true);
-            
-            let orderDocRef;
-
-            try {
-                // A. Create the Order in Firestore (Status: PENDING)
-                const newOrder = {
-                    customerId: userId,
-                    customerName: document.getElementById('name').value,
-                    items: window.ORDER_ITEMS,
-                    amount: window.ORDER_TOTAL_CENTS,
-                    status: 'PENDING',
-                    createdAt: new Date(),
-                    lastUpdated: new Date()
-                };
-
-                orderDocRef = await addDoc(collection(db, publicOrdersPath), newOrder);
-                const orderId = orderDocRef.id;
-
-                displayMessage(`Order created: ${orderId}. Requesting payment intent...`, false, 'bg-blue-100 text-blue-700');
-                
-                // B. Fetch the Client Secret from Node.js Server
-                const response = await fetch(window.serverUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amountInCents: window.ORDER_TOTAL_CENTS, orderId: orderId })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                const clientSecret = data.clientSecret;
-
-                // C. Confirm Payment with Stripe
-                const result = await stripe.confirmCardPayment(clientSecret, {
-                    payment_method: {
-                        card: card,
-                        billing_details: { name: document.getElementById('name').value },
-                    }
-                });
-
-                if (result.error) {
-                    // Payment failed, update status to FAILED
-                    await updateDoc(doc(db, publicOrdersPath, orderId), {
-                        status: 'FAILED',
-                        lastUpdated: new Date(),
-                        paymentError: result.error.message
-                    });
-                    displayMessage(`Payment Failed: ${result.error.message}. Status set to FAILED in Firestore.`, true);
-                } else if (result.paymentIntent.status === 'succeeded') {
-                    // Payment succeeded, update status to PAID
-                    await updateDoc(doc(db, publicOrdersPath, orderId), {
-                        status: 'PAID',
-                        stripePaymentIntentId: result.paymentIntent.id,
-                        lastUpdated: new Date()
-                    });
-                    displayMessage('Payment SUCCESSFUL! Order placed and marked as PAID in Firestore.', false, 'bg-green-100 text-green-700');
-                    form.reset();
-                    card.clear();
-                    submitButton.disabled = true;
-                } else {
-                    // Handle other statuses (e.g., requires_action)
-                    displayMessage(`Payment status: ${result.paymentIntent.status}. Please check Stripe dashboard.`, true);
-                }
-
-            } catch (error) {
-                console.error('[Checkout Error]', error);
-                
-                // If an order was created but the payment intent failed (A->B), mark it failed
-                if (orderDocRef) {
-                     await updateDoc(doc(db, publicOrdersPath, orderDocRef.id), {
-                        status: 'FAILED_API_ERROR',
-                        lastUpdated: new Date(),
-                        serverError: error.message
-                    });
-                }
-                displayMessage(`System Error: ${error.message}. Ensure 'server.js' is running.`, true);
-            } finally {
-                showProcessing(false);
-            }
-        }
-        
-        // --- UI Helpers ---
-        function showProcessing(isProcessing) {
-            const submitButton = document.getElementById('submit-button');
-            const buttonText = document.getElementById('button-text');
-            const spinner = document.getElementById('spinner');
-            submitButton.disabled = isProcessing;
-            spinner.classList.toggle('hidden', !isProcessing);
-            buttonText.textContent = isProcessing ? 'Processing...' : 'Pay $19.99';
+        // If the payment requires further actions (3D Secure), handle them:
+        if(confirmResult.paymentIntent && confirmResult.paymentIntent.status === 'requires_action'){
+          // Let Stripe.js handle the rest (this will show 3DS modal)
+          const next = await stripe.confirmCardPayment(clientSecretLocal);
+          if(next.error){
+            ev.complete('fail');
+            showError(next.error.message || 'Authentication failed.');
+            return;
+          }
         }
 
-        function displayMessage(text, isError = false, bgColorClass = null) {
-            const messageBox = document.getElementById('message-box');
-            const messageText = document.getElementById('message-text');
-            
-            messageBox.className = `p-4 rounded-lg text-sm`;
-            messageBox.classList.remove('hidden', 'bg-red-100', 'bg-green-100', 'bg-blue-100', 'text-red-700', 'text-green-700', 'text-blue-700');
+        // Payment succeeded
+        ev.complete('success');
+        showConfirmation(window.orderNumber);
 
-            if (bgColorClass) {
-                messageBox.classList.add(bgColorClass);
-            } else {
-                messageBox.classList.add(isError ? 'bg-red-100' : 'bg-green-100');
-                messageText.classList.add(isError ? 'text-red-700' : 'text-green-700');
-            }
-            messageText.textContent = text;
-            messageBox.classList.remove('hidden');
-        }
+      } catch(e){
+        console.error(e);
+        ev.complete('fail');
+        showError('Wallet payment failed. Try card or another method.');
+      }
+    });
+  } else {
+    paymentRequestButtonWrapper.classList.add('hidden');
+  }
+}
 
-        // Start the application
-        initializeFirebase();
-    </script>
+/* Place Order button — card flow using Payment Element */
+placeOrderBtn.addEventListener('click', async (e) => {
+  e.preventDefault();
+  clearError();
+
+  // OTP check (testing)
+  if(!currentOTP || Number(otpInput.value) !== currentOTP){
+    showError('Invalid OTP. Generate and enter the OTP.');
+    return;
+  }
+
+  placeOrderBtn.disabled = true;
+  placeOrderBtn.innerText = 'Processing Payment...';
+
+  try {
+    // confirmPayment triggers the Payment Element's selected method (card)
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/success.html?order=${window.orderNumber}`
+      }
+    });
+
+    if(error){
+      // show inline error
+      showError(error.message || 'Payment failed.');
+      placeOrderBtn.disabled = false;
+      placeOrderBtn.innerText = 'Place Order & Pay';
+      return;
+    }
+
+    // If no error, Stripe will redirect the browser as part of confirmPayment (unless it's immediate success).
+    // But for safety, we also show inline confirmation when possible:
+    showConfirmation(window.orderNumber);
+
+  } catch(err){
+    console.error(err);
+    showError('Unexpected payment error.');
+    placeOrderBtn.disabled = false;
+    placeOrderBtn.innerText = 'Place Order & Pay';
+  }
+});
+
+/* Show inline confirmation (same page) */
+function showConfirmation(orderNumber){
+  // Clear cart locally
+  try { localStorage.removeItem(LS_KEY); localStorage.removeItem('grocerygo_subtotal'); } catch(e){}
+
+  const root = document.querySelector('.max-w-6xl');
+  root.innerHTML = `
+    <div class="max-w-3xl mx-auto p-6 card text-center">
+      <h2 class="text-2xl font-bold mb-3">Payment successful ✅</h2>
+      <p class="muted mb-4">Thanks — your order number is <strong>${escapeHtml(orderNumber)}</strong>.</p>
+      <p class="mb-4">We've emailed the receipt. We'll update the order status automatically when payment is confirmed.</p>
+      <a class="inline-block bg-green-600 text-white px-4 py-2 rounded" href="/order-success.html?order=${encodeURIComponent(orderNumber)}">View order details</a>
+    </div>
+  `;
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+/* Small helper to escape html in inserted text */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+
+/* remove error message when user types */
+[nameEl, emailEl, mobileEl, addressEl, suburbEl, stateEl, postcodeEl].forEach(el => {
+  el.addEventListener('input', () => { clearError(); });
+});
+
+</script>
 </body>
 </html>
