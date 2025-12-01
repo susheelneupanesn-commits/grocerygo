@@ -1,273 +1,146 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+// Initialization
+const stripe = Stripe("pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l");
+const form = document.getElementById("payment-form");
+const messageContainer = document.getElementById("message");
+const payButton = document.getElementById("pay");
 
-<script>
-  // ------------------- GLOBAL -------------------
-  const supabaseUrl = 'https://gikdqaxdqfmzdvolkxbn.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdpa2RxYXhkcWZtemR2b2xreGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyOTQwNDIsImV4cCI6MjA3Nzg3MDA0Mn0.pJ-9KfCxV7YT5loiURW14xRmf72s1EZRFRh4iKGnQis';
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+let elements; // To hold the Stripe Elements instance
 
-  let trolley = JSON.parse(localStorage.getItem('trolley')) || [];
-
-  // ------------------- DOM -------------------
-  document.addEventListener('DOMContentLoaded', () => {
-    const trolleyBody = document.getElementById('trolleyTable');
-    const subtotalEl = document.getElementById('trolleySubtotal');
-    const discountEl = document.getElementById('discountAmount');
-    const clearBtn = document.getElementById('clearTrolleyBtn');
-    const proceedBtn = document.getElementById('proceedCheckoutBtn');
-    const continueBtn = document.getElementById('continueShoppingBtn');
-
-    // ------------------- UTILS -------------------
-    function saveTrolley() {
-      localStorage.setItem('trolley', JSON.stringify(trolley));
-    }
-
-    function calculateSubtotal() {
-      return trolley.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
-    }
-
-    // ------------------- FETCH -------------------
-    async function fetchTrolleyProducts() {
-      if (!trolley.length) return renderTrolley([]);
-
-      const ids = trolley.map(i => i.id);
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .in('id', ids);
-
-      if (error) return console.error('Supabase fetch error:', error);
-
-      const merged = trolley.map(item => {
-        const product = data.find(p => p.id === item.id);
-        if (!product) return item;
-
-        const variantPrice = item.variantIndex != null && product.variants
-          ? product.variants[item.variantIndex]?.price
-          : product.price;
-
-        const variantName = item.variantIndex != null && product.variants
-          ? product.variants[item.variantIndex]?.name
-          : '';
-
-        return {
-          ...item,
-          name: product.name,
-          brand: product.brand,
-          image: product.image_url,
-          link: `product.html?id=${product.id}`,
-          price: variantPrice || product.price || 0,
-          variant: variantName
-        };
-      });
-
-      renderTrolley(merged);
-    }
-function renderProducts() {
-  productGrid.innerHTML = '';
-  products.forEach((p, index) => {
-    const card = document.createElement('div');
-    card.className = 'product-card';
-
-    // Variant/pack text
-    let variantText = '';
-    if (p.variant && p.pack_size) {
-      variantText = `<div class="variant-selection">${p.variant} - ${p.pack_size}</div>`;
-    } else if (p.variant) {
-      variantText = `<div class="variant-selection">${p.variant}</div>`;
-    } else if (p.pack_size) {
-      variantText = `<div class="variant-selection">${p.pack_size}</div>`;
-    }
-
-    // Price fallback
-    const price = p.price || 0;
-
-    card.innerHTML = `
-      <div class="product-image-container">
-        <img src="${p.image_url || 'images/placeholder.png'}" alt="${p.Item}">
-      </div>
-      <div class="product-info">
-        <span class="product-name">${p.Item || 'No Name'}</span>
-        <span class="product-brand">${p.brand || 'No Brand'}</span>
-        <span class="product-price">$${price.toFixed(2)}</span>
-      </div>
-      ${variantText}
-      <button class="add-to-cart-btn" data-index="${index}">Add to Trolley</button>
-    `;
-
-    productGrid.appendChild(card);
-  });
-
-// Add to trolley
-document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const idx = parseInt(btn.dataset.index);
-    const product = products[idx];
-
-    const card = btn.closest('.product-card');
-    const selectedVariant = card.querySelector('.variant-btn.selected')?.textContent || null;
-
-    // Build the cart item name
-    const itemName = `${product.Item} ${selectedVariant ? `(${selectedVariant})` : ''}`;
-
-    // Check if item exists
-    const existing = trolley.find(item =>
-      item.id === product.id && item.selectedVariant === selectedVariant
-    );
-
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      trolley.push({
-        id: product.id,
-        name: itemName,      // <-- IMPORTANT
-        brand: product.brand, // optional but helpful
-        quantity: 1,
-        price: product.price,
-        selectedVariant
-      });
-    }
-
-    localStorage.setItem('trolley', JSON.stringify(trolley));
-    showToast(`${itemName} added to trolley!`);
-    updateTrolleyCount();
-  });
-});
-
-
-    // ------------------- RENDER -------------------
-    function renderTrolley(items) {
-      trolleyBody.innerHTML = '';
-
-      if (!items.length) {
-        trolleyBody.innerHTML = `<tr><td colspan="5" class="empty-cart-message">Your cart is empty. <a href="store.html">Start shopping now!</a></td></tr>`;
-        subtotalEl.textContent = '$0.00';
-        discountEl.textContent = '-$0.00';
-        localStorage.setItem('checkoutSubtotal', '0.00'); // ---- added line ----
+/**
+ * Step 1: Initialize the Stripe Payment Element UI.
+ * This is done by fetching a temporary Payment Intent's client secret.
+ */
+async function initialize() {
+    const trolley = JSON.parse(localStorage.getItem("trolley") || "[]");
+    
+    // Check if trolley is empty 
+    if (trolley.length === 0) {
+        messageContainer.textContent = "Your cart is empty. Please add items to proceed.";
+        payButton.disabled = true;
         return;
-      }
-
-      items.forEach((item, idx) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>
-            <img src="${item.image || '/images/placeholder.png'}" alt="${item.name}" style="width:50px;height:50px;border-radius:5px;">
-            <a href="${item.link}">${item.name}</a>
-            ${item.variant ? `<span class="variant-name">(${item.variant})</span>` : ''}
-            <span>${item.brand || ''}</span>
-          </td>
-          <td>$${item.price.toFixed(2)}</td>
-          <td>
-            <button class="qty-btn" onclick="changeQty(${idx}, -1)">-</button>
-            ${item.quantity}
-            <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
-          </td>
-          <td>$${(item.price * item.quantity).toFixed(2)}</td>
-          <td><button class="remove-btn" onclick="removeItem(${idx})">Remove</button></td>
-        `;
-        trolleyBody.appendChild(row);
-      });
-
-      subtotalEl.textContent = `$${calculateSubtotal().toFixed(2)}`;
-      discountEl.textContent = '-$0.00';
-
-      // ---- added line: save subtotal for checkout ----
-      localStorage.setItem('checkoutSubtotal', calculateSubtotal().toFixed(2));
     }
-
-    // ------------------- EVENTS -------------------
-    window.changeQty = (idx, delta) => {
-      trolley[idx].quantity = Math.max(1, trolley[idx].quantity + delta);
-      saveTrolley();
-      fetchTrolleyProducts();
+    
+    // Create placeholder customer data just to get a clientSecret for UI setup.
+    // The actual PI is created on form submission.
+    const tempCustomer = {
+        name: "Placeholder", email: "temp@example.com", mobile: "0", 
+        address: "1", suburb: "Test", state: "QLD", postcode: "4000"
     };
 
-    window.removeItem = idx => {
-      trolley.splice(idx, 1);
-      saveTrolley();
-      fetchTrolleyProducts();
-    };
+    try {
+        // Fetch client secret for PI setup
+        const resp = await fetch('/api/create-payment-intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trolley, customer: tempCustomer })
+        });
+        const data = await resp.json();
+        
+        if (!resp.ok) throw new Error(data.error || "Failed to initialize payment.");
 
-    clearBtn.onclick = () => {
-      if(confirm('Empty your cart?')) {
-        trolley = [];
-        saveTrolley();
-        fetchTrolleyProducts();
-      }
-    };
+        const { clientSecret } = data;
 
-    proceedBtn.onclick = () => {
-      if(!trolley.length) return alert('Cart is empty!');
-      window.location.href = 'checkout.html';
-    };
+        // Initialize Stripe Elements
+        elements = stripe.elements({ clientSecret });
 
-    continueBtn.onclick = () => {
-      window.location.href = 'store.html';
-    };
-<script>
-// supabaseClient is already initialized
-async function placeOrder(orderData) {
-  const { data, error } = await supabaseClient
-    .from('orders')
-    .insert([orderData]);
+        // Create and mount the Payment Element
+        const paymentElement = elements.create('payment', {
+            layout: 'tabs',
+            // Disable collection of name/email by the Payment Element since we collect them ourselves
+            fields: { 
+                billingDetails: { 
+                    name: 'never', 
+                    email: 'never' 
+                }
+            }
+        });
+        paymentElement.mount('#payment-element');
 
-  if (error) {
-    console.error("Order failed:", error);
-    showToast("Order could not be saved!");
-  } else {
-    showToast("Order successfully placed!");
-  }
+    } catch (err) {
+        messageContainer.textContent = `Initialization Error: ${err.message}. Please check console.`;
+        console.error("Stripe/API Initialization Error:", err);
+        payButton.disabled = true;
+    }
 }
 
-// Example usage when user clicks “Place Order”
-document.getElementById("placeOrderBtn").addEventListener("click", () => {
-  const trolley = JSON.parse(localStorage.getItem("grocerygo_trolley")) || [];
-  if (!trolley.length) { 
-    showToast("Your trolley is empty!"); 
-    return; 
-  }
+/**
+ * Step 2: Handle Form Submission and Payment Confirmation.
+ * 1. Creates the final Payment Intent.
+ * 2. Confirms the payment using the Stripe Payment Element data.
+ */
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    payButton.disabled = true;
+    messageContainer.textContent = 'Processing payment... Do not close this window.';
 
-  const orderData = {
-    items: trolley,
-    total: trolley.reduce((sum, item) => sum + item.price*item.quantity, 0),
-    created_at: new Date()
-    // add customer info if needed: name, email, address
-  };
+    // Collect all customer data from form inputs
+    const customer = {
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        mobile: document.getElementById("phone").value,
+        address: document.getElementById("address").value,
+        suburb: document.getElementById("suburb").value,
+        state: document.getElementById("state").value,
+        postcode: document.getElementById("postcode").value
+    };
 
-  placeOrder(orderData);
-  localStorage.removeItem("grocerygo_trolley"); // clear trolley
-  updateTrolleyCount();
+    const trolley = JSON.parse(localStorage.getItem("trolley") || "[]");
+    
+    if (!trolley.length) {
+        messageContainer.textContent = "Cart is empty.";
+        payButton.disabled = false;
+        return;
+    }
+
+    try {
+        // 1. Create a NEW Payment Intent (with final correct customer/trolley data)
+        const resp = await fetch('/api/create-payment-intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trolley, customer })
+        });
+        const data = await resp.json();
+        
+        if (!resp.ok) throw new Error(data.error || "Payment intent creation failed. Check postcode/trolley.");
+
+        const { clientSecret, orderNumber } = data;
+
+        // 2. Confirm the Payment using the Payment Element
+        const { error: stripeError } = await stripe.confirmPayment({
+            elements,
+            clientSecret: clientSecret,
+            confirmParams: {
+                // Stripe will redirect here on successful payment/3DS completion
+                return_url: window.location.origin + '/success.html?order=' + orderNumber, 
+                // Pass collected customer details as billing details
+                payment_method_data: {
+                    billing_details: {
+                        name: customer.name,
+                        email: customer.email,
+                        phone: customer.mobile,
+                        address: {
+                            line1: customer.address,
+                            city: customer.suburb,
+                            state: customer.state,
+                            postal_code: customer.postcode,
+                            country: 'AU' 
+                        }
+                    }
+                }
+            }
+        });
+
+        if (stripeError) {
+            // Display errors from Stripe confirmation
+            messageContainer.textContent = stripeError.message;
+            payButton.disabled = false;
+        } 
+        // On success, Stripe handles the redirect to /success.html.
+
+    } catch (err) {
+        messageContainer.textContent = `Payment Failed: ${err.message}`;
+        payButton.disabled = false;
+    }
 });
-</script>
 
-    // ------------------- INIT -------------------
-    fetchTrolleyProducts();
-
-    // ------------------- ADD TO TROLLEY BUTTONS -------------------
-    document.querySelectorAll('.add-to-trolley').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = parseInt(btn.dataset.id);
-        const variantIndex = btn.dataset.variantIndex ? parseInt(btn.dataset.variantIndex) : null;
-        const quantity = btn.dataset.qty ? parseInt(btn.dataset.qty) : 1;
-
-        const existingItem = trolley.find(item => item.id === id && item.variantIndex === variantIndex);
-        if (existingItem) {
-          existingItem.quantity += quantity;
-        } else {
-          trolley.push({ id, quantity, variantIndex });
-        }
-
-        saveTrolley();
-        fetchTrolleyProducts();
-        alert('Item added to trolley!');
-      });
-    });
-  });
-  <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const subtotalEl = document.getElementById('checkoutSubtotal');
-  const subtotal = localStorage.getItem('checkoutSubtotal');
-  subtotalEl.textContent = subtotal ? `$${subtotal}` : '$0.00';
-});
-  });
-</script>
+initialize(); // Start the process
