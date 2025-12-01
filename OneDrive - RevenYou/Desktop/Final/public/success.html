@@ -4,31 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Confirmed</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; }
-        .container { max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 30px; border-radius: 8px; }
-        h1 { color: green; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <h1>✅ Order Placed Successfully!</h1>
-        <p>Thank you for your order.</p>
-        <p>Your order number is: <strong id="orderNumberDisplay">Loading...</strong></p>
-        <p>Your order status will be updated shortly.</p>
-        <p><a href="/">Return to Home</a></p>
+<body class="p-4 flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-xl text-center">
+        <svg class="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 class="text-3xl font-bold text-gray-800 mt-4">Thank You!</h2>
+        <p class="text-lg text-gray-600 mt-2">Your order has been placed successfully.</p>
+        <p class="text-xl font-semibold text-indigo-600 mt-4">Order Number: <span id="orderNumberDisplay">...</span></p>
+        <p class="text-sm text-gray-500 mt-6">We have sent a confirmation email to your address.</p>
+        <a href="store.html" class="mt-6 inline-block bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition">Continue Shopping</a>
     </div>
 
     <script>
-        // Extract the order number from the URL query parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const order = urlParams.get('order');
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get the 'order' query parameter from the URL
+            const params = new URLSearchParams(window.location.search);
+            const orderNumber = params.get('order');
+            
+            // Display the order number if it exists
+            const displayEl = document.getElementById('orderNumberDisplay');
+            if (orderNumber) {
+                displayEl.textContent = orderNumber;
+            } else {
+                displayEl.textContent = 'N/A';
+            }
 
-        if (order) {
-            document.getElementById('orderNumberDisplay').innerText = order;
-        } else {
-            document.getElementById('orderNumberDisplay').innerText = 'N/A';
-        }
+            // Clear the local trolley after successful order
+            localStorage.removeItem("trolley");
+        });
     </script>
 </body>
 </html>
