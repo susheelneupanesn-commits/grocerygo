@@ -199,6 +199,7 @@
         
         // Firebase Setup
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // Note: We check if __firebase_config is defined and parse it. If not, it becomes an empty object {}.
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
@@ -392,9 +393,13 @@
             try {
                 setLogLevel('debug'); 
                 console.log("Attempting Firebase initialization...");
+                console.log("App ID:", appId);
+                console.log("Firebase Config Object (should contain API Key):", firebaseConfig);
 
+                const errorMsg = "Firebase configuration is missing or invalid. Check the apiKey field.";
+                
+                // This check throws the error you are seeing if firebaseConfig is {}
                 if (!firebaseConfig || !firebaseConfig.apiKey) {
-                    const errorMsg = "Firebase configuration is missing or invalid. Check the apiKey field.";
                     console.error("Configuration Error:", errorMsg, { config: firebaseConfig });
                     throw new Error(errorMsg);
                 }
