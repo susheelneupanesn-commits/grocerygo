@@ -2,48 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/**/*.py",
-      "use": "@vercel/python"
+      "src": "server.js",
+      "use": "@vercel/node"
     },
     {
-<<<<<<< HEAD
       "src": "public/**/*",
       "use": "@vercel/static"
-=======
-      "src": "public/store.html",
-      "use": "@vercel/static-build"
-    },
-    {
-      "src": "public/**/*.css",
-      "use": "@vercel/static-build"
-    },
-    {
-      "src": "public/**/*.js",
-      "use": "@vercel/static-build"
->>>>>>> a0da282 (Final: Corrected vercel.json to use /public/ folder paths.)
     }
   ],
   "routes": [
     {
-      "src": "/create-payment-intent",
-      "dest": "/api/server.py",
-      "methods": ["POST"]
-    },
-    {
-      "src": "/",
-<<<<<<< HEAD
-      "dest": "/public/store.html"
+      "src": "/api/(.*)",
+      "dest": "/server.js"
     },
     {
       "src": "/(.*)",
       "dest": "/public/$1"
-=======
-      "dest": "/public/store.html" 
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/public/$1" 
->>>>>>> a0da282 (Final: Corrected vercel.json to use /public/ folder paths.)
     }
   ]
 }
