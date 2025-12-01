@@ -1,161 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GroceryGo | Checkout</title>
-<script src="https://js.stripe.com/v3/"></script>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<style>
-/* ------------------------------------- */
-/* 1. Base & Reset */
-/* ------------------------------------- */
-:root {
-    --primary: #4CAF50;
-    --secondary: #ff9800;
-    --text: #333;
-    --bg-light: #f9f9f9;
-    --border: #ddd;
-    --error: #f44336;
-    --shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-* { box-sizing: border-box; margin:0; padding:0; font-family: 'Roboto', sans-serif; }
-body { background: var(--bg-light); color: var(--text); line-height:1.5; }
-.container { max-width: 700px; margin: 20px auto; padding: 15px; }
-h1,h2 { color: var(--primary); margin-bottom: 15px; }
-h1 { font-size: 1.8em; }
-h2 { font-size: 1.4em; margin-top: 30px; }
-a.back-link { display:inline-block; margin-bottom:15px; color:var(--primary); font-weight:bold; text-decoration:none; }
-.error-message { color: var(--error); background: #ffe6e6; padding:10px; border-radius:8px; margin-bottom:15px; display:none; }
-
-/* ------------------------------------- */
-/* 2. Cards & Forms */
-/* ------------------------------------- */
-.card { background:#fff; padding:20px; border-radius:10px; box-shadow: var(--shadow); margin-bottom:20px; }
-.form-group { margin-bottom:15px; }
-label { display:block; font-weight:700; margin-bottom:5px; }
-input, select { width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; font-size:1em; }
-input:focus, select:focus { outline:none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(76,175,80,0.2); }
-.input-row { display:flex; gap:15px; flex-wrap:wrap; }
-.input-row > .form-group { flex:1; min-width:120px; }
-
-/* ------------------------------------- */
-/* 3. Summary & Payment */
-/* ------------------------------------- */
-#priceSummary div { display:flex; justify-content:space-between; padding:5px 0; }
-#priceSummary strong { color: var(--primary); font-size:1.1em; }
-#payment-element-container { margin-top:20px; }
-
-/* ------------------------------------- */
-/* 4. Buttons & Responsive */
-/* ------------------------------------- */
-button { width:100%; padding:15px; border:none; border-radius:8px; font-weight:700; font-size:1.1em; cursor:pointer; margin-top:15px; transition:0.3s; }
-#getPaymentOptions { background: var(--primary); color:#fff; }
-#getPaymentOptions:hover:not(:disabled) { background:#43a047; }
-#placeOrder { background: var(--secondary); color:#fff; }
-#placeOrder:hover:not(:disabled) { background:#fb8c00; }
-button:disabled { opacity:0.6; cursor:not-allowed; }
-
-/* ------------------------------------- */
-/* 5. Service Message */
-/* ------------------------------------- */
-#serviceAreaMessage { padding:10px; border-radius:6px; margin-top:5px; font-weight:bold; }
-.service-ok { background:#e8f5e9; color:#388e3c; }
-.service-warn { background:#fff3e0; color:#e65100; }
-
-/* ------------------------------------- */
-/* 6. Mobile adjustments */
-/* ------------------------------------- */
-@media(max-width:500px){
-  .input-row { flex-direction:column; }
-  h1,h2 { font-size:1.5em; }
-}
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>GroceryGo | Checkout</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to integrate with Tailwind and Stripe */
+        :root {
+            --primary: #10B981; /* Tailwind Green 500 */
+            --secondary: #F59E0B; /* Tailwind Amber 500 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F3F4F6; /* Gray 100 */
+        }
+        /* Style for Stripe Element container to prevent layout shift */
+        #payment-element-container { 
+            min-height: 100px; 
+            transition: all 0.3s ease;
+        }
+        /* Custom styling for the Stripe component area */
+        #payment-element > div {
+            padding: 12px 16px;
+            border-radius: 0.5rem;
+            border: 1px solid #D1D5DB;
+            background-color: #fff;
+        }
+        /* Custom card styling for better shadow and border */
+        .custom-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+        .error-message {
+            background-color: #FEE2E2; /* Red 100 */
+            color: #DC2626; /* Red 600 */
+        }
+        .service-ok {
+            background-color: #D1FAE5; /* Green 100 */
+            color: #059669; /* Green 600 */
+        }
+        .service-warn {
+            background-color: #FFFBEB; /* Yellow 100 */
+            color: #D97706; /* Yellow 600 */
+        }
+        /* Sticky element for desktop sidebar */
+        @media (min-width: 1024px) {
+            .summary-sticky {
+                position: sticky;
+                top: 2rem;
+            }
+        }
+    </style>
 </head>
-<body>
+<body class="min-h-screen">
 
-<div class="container">
-    <a href="./trolley.html" class="back-link">← Back to Trolley</a>
-    <h1>🛒 Checkout</h1>
+<div class="lg:max-w-7xl mx-auto px-4 py-8">
+    
+    <a href="./trolley.html" class="inline-flex items-center text-gray-600 hover:text-green-600 font-semibold mb-6 transition">
+        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        Back to Trolley
+    </a>
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">🛒 Secure Checkout</h1>
 
-    <div id="statusMessage" class="error-message"></div>
+    <!-- MAIN GRID CONTAINER -->
+    <div class="lg:grid lg:grid-cols-3 lg:gap-8">
+        
+        <!-- LEFT COLUMN: CUSTOMER DETAILS AND PAYMENT (2/3 width on desktop) -->
+        <div class="lg:col-span-2 space-y-6">
 
-    <!-- Customer Details -->
-    <div class="card">
-        <h2>Customer Details</h2>
-        <div class="form-group">
-            <label for="customerName">Full Name</label>
-            <input id="customerName" placeholder="John Doe" value="Test Customer" required>
-        </div>
-        <div class="input-row">
-            <div class="form-group">
-                <label for="customerEmail">Email</label>
-                <input id="customerEmail" type="email" placeholder="john@example.com" value="test@example.com" required>
+            <div id="statusMessage" class="error-message p-3 rounded-lg font-medium hidden"></div>
+
+            <!-- Customer Details -->
+            <div class="custom-card">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 border-gray-100">1. Contact & Customer Details</h2>
+                <div class="space-y-4">
+                    <div class="form-group">
+                        <label for="customerName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input id="customerName" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="John Doe" value="Test Customer" required>
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="form-group flex-1">
+                            <label for="customerEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input id="customerEmail" type="email" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="john@example.com" value="test@example.com" required>
+                        </div>
+                        <div class="form-group flex-1">
+                            <label for="customerMobile" class="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+                            <input id="customerMobile" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="0412345678" value="0412345678" required>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="customerMobile">Mobile</label>
-                <input id="customerMobile" placeholder="0412345678" value="0412345678" required>
+
+            <!-- Delivery Address -->
+            <div class="custom-card">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 border-gray-100">2. Delivery Address & Slot</h2>
+                <div class="space-y-4">
+                    <div class="form-group">
+                        <label for="customerAddress" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                        <input id="customerAddress" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="123 Queen St" value="123 Queen St" required>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label for="customerSuburb" class="block text-sm font-medium text-gray-700 mb-1">Suburb</label>
+                            <input id="customerSuburb" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="Brisbane" value="Brisbane" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customerState" class="block text-sm font-medium text-gray-700 mb-1">State</label>
+                            <select id="customerState" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" required>
+                                <option value="QLD" selected>QLD</option>
+                                <option value="NSW">NSW</option>
+                                <option value="VIC">VIC</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerPostcode" class="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
+                        <input id="customerPostcode" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="4000" value="4000" required>
+                        <div id="serviceAreaMessage" class="p-2 rounded-lg mt-2 text-sm font-medium"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="deliverySlot" class="block text-sm font-medium text-gray-700 mb-1">Delivery Time Slot</label>
+                        <select id="deliverySlot" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" required></select>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Delivery Address -->
-    <div class="card">
-        <h2>Delivery Address</h2>
-        <div class="form-group">
-            <label for="customerAddress">Address Line 1</label>
-            <input id="customerAddress" placeholder="123 Queen St" value="123 Queen St" required>
-        </div>
-        <div class="input-row">
-            <div class="form-group">
-                <label for="customerSuburb">Suburb</label>
-                <input id="customerSuburb" placeholder="Brisbane" value="Brisbane" required>
+            <!-- Payment -->
+            <div class="custom-card">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 border-gray-100">3. Payment</h2>
+                
+                <button id="getPaymentOptions" class="w-full p-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                    Proceed to Payment
+                </button>
+                
+                <div id="payment-element-container" class="mt-4" style="display:none;">
+                    <!-- Stripe Payment Element will mount here -->
+                    <div id="payment-element"></div>
+                </div>
+
+                <button id="placeOrder" class="w-full p-3 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition duration-150 ease-in-out mt-4 disabled:opacity-50 disabled:cursor-not-allowed" style="display:none;">
+                    Place Order & Pay
+                </button>
             </div>
-            <div class="form-group">
-                <label for="customerState">State</label>
-                <select id="customerState" required>
-                    <option value="QLD" selected>QLD</option>
-                    <option value="NSW">NSW</option>
-                    <option value="VIC">VIC</option>
-                </select>
+
+            <!-- OTP Verification -->
+            <div class="custom-card border-2 border-dashed border-red-300">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">OTP Verification (Testing Only)</h2>
+                <button id="generateOTP" class="w-full p-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition duration-150 ease-in-out mb-3">
+                    Generate OTP
+                </button>
+                <div id="otpDisplay" class="text-red-600 font-bold mb-3 text-center"></div>
+                <div class="form-group">
+                    <label for="otpInput" class="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
+                    <input id="otpInput" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="Enter 4-digit OTP">
+                </div>
             </div>
-        </div>
-        <div class="form-group">
-            <label for="customerPostcode">Postcode</label>
-            <input id="customerPostcode" placeholder="4000" value="4000" required>
-            <div id="serviceAreaMessage"></div>
-        </div>
-        <div class="form-group">
-            <label for="deliverySlot">Delivery Time Slot</label>
-            <select id="deliverySlot" required></select>
-        </div>
-    </div>
 
-    <!-- Order Summary -->
-    <div class="card">
-        <h2>Order Summary</h2>
-        <div id="priceSummary">
-            <div>Subtotal: <span id="subtotalAmount"></span></div>
-            <div>Delivery Fee: <span id="deliveryFee"></span></div>
-            <div><strong>Grand Total:</strong> <span id="grandTotalAmount"></span></div>
         </div>
-    </div>
 
-    <!-- Payment -->
-    <div class="card">
-        <h2>Payment</h2>
-        <button id="getPaymentOptions">Proceed to Payment</button>
-        <div id="payment-element-container" style="display:none;"><div id="payment-element"></div></div>
-        <button id="placeOrder" style="display:none;">Place Order & Pay</button>
-    </div>
-
-    <!-- OTP Verification -->
-    <div class="card">
-        <h2>OTP Verification (Testing Only)</h2>
-        <button id="generateOTP">Generate OTP</button>
-        <div id="otpDisplay" style="color:var(--error);font-weight:bold;margin-top:10px;"></div>
-        <div class="form-group">
-            <input id="otpInput" placeholder="Enter OTP">
+        <!-- RIGHT COLUMN: ORDER SUMMARY (1/3 width on desktop) -->
+        <div class="lg:col-span-1 mt-6 lg:mt-0">
+            <div class="custom-card summary-sticky">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Order Summary</h2>
+                <div id="priceSummary" class="space-y-2 text-gray-700">
+                    <div class="flex justify-between border-b border-gray-100 pb-2">
+                        <span>Subtotal:</span> 
+                        <span id="subtotalAmount" class="font-medium"></span>
+                    </div>
+                    <div class="flex justify-between border-b border-gray-100 pb-2">
+                        <span>Delivery Fee:</span> 
+                        <span id="deliveryFee" class="font-medium"></span>
+                    </div>
+                    <div class="flex justify-between pt-3 text-xl font-bold border-t border-gray-200">
+                        <span>Grand Total:</span> 
+                        <span id="grandTotalAmount" class="text-green-600"></span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -192,6 +219,7 @@ window.orderNumber = null;
 // ----------------------
 // Logistics Data
 // ----------------------
+// NOTE: This large data array logic is preserved exactly as provided by the user.
 const GROUP_A = [4300,4301,4303,4304,4305,4306,4307,4308,4311,4114,4118,4124,4125,4127,4128,4129,4131,4132,4133,4207,4280,4285,4290];
 const GROUP_B = [4169,4170,4171,4172,4173,4174,4178,4179,4157,4158,4159,4160,4161,4163,4164,4165];
 const GROUP_C = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4520];
@@ -215,27 +243,47 @@ function getAvailableSlotsByDay(pc,day){
 }
 function calculateDeliveryFee(pc){ const d=POSTCODE_DISTANCES[Number(pc)]; if(d===undefined)return-1; for(const f of DISTANCE_FEES){ if(d<=f.maxKm) return f.fee; } return 25; }
 function formatCurrency(amount){ return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(amount); }
-function displayError(msg){ statusMessage.innerText=msg; statusMessage.style.display='block'; }
-function clearError(){ statusMessage.style.display='none'; statusMessage.innerText=''; }
+function displayError(msg){ statusMessage.innerText=msg; statusMessage.classList.remove('hidden'); }
+function clearError(){ statusMessage.classList.add('hidden'); statusMessage.innerText=''; }
 
+// ----------------------
+// Initialization
+// ----------------------
 const trolley=JSON.parse(localStorage.getItem("grocerygo_trolley")||"[]");
-let subtotal=trolley.reduce((s,i)=>s+(i.price||0)*(i.quantity||1),0);
+let subtotal=trolley.reduce((s,i)=>s+(i.price||0)*(i.quantity||1),0) || 120.50; // Use a default if trolley is empty for demonstration
 
+// ----------------------
+// UI Update & Logic
+// ----------------------
 function updateSummary(postcode){
-  const fee=calculateDeliveryFee(postcode);
+  const pc = postcode.trim();
+  const fee=calculateDeliveryFee(pc);
   let total=subtotal+(fee>0?fee:0);
-  serviceAreaMessage.style.display='block';
-  getPaymentBtn.disabled=true;
+  
+  // Reset message
+  serviceAreaMessage.classList.remove('service-ok', 'service-warn');
+  serviceAreaMessage.textContent = '';
 
-  if(fee===-1){ serviceAreaMessage.className='service-warn'; serviceAreaMessage.textContent=`⚠️ Postcode ${postcode} is outside our delivery range`; feeSpan.innerText='N/A'; totalSpan.innerText='N/A'; }
-  else{ serviceAreaMessage.className='service-ok'; serviceAreaMessage.textContent=`✅ Service available. Distance: ${POSTCODE_DISTANCES[Number(postcode)].toFixed(1)} km. Fee: ${formatCurrency(fee)}`; feeSpan.innerText=formatCurrency(fee); totalSpan.innerText=formatCurrency(total); }
+  if(fee===-1){ 
+    serviceAreaMessage.classList.add('service-warn'); 
+    serviceAreaMessage.textContent=`⚠️ Postcode ${pc} is outside our delivery range.`; 
+    feeSpan.innerText='N/A'; 
+    totalSpan.innerText='N/A'; 
+    getPaymentBtn.disabled=true;
+  }
+  else{ 
+    serviceAreaMessage.classList.add('service-ok'); 
+    serviceAreaMessage.textContent=`✅ Service available. Distance: ${POSTCODE_DISTANCES[Number(pc)].toFixed(1)} km. Fee: ${formatCurrency(fee)}.`; 
+    feeSpan.innerText=formatCurrency(fee); 
+    totalSpan.innerText=formatCurrency(total); 
+  }
 
   subtotalSpan.innerText=formatCurrency(subtotal);
 
-  let slots=getAvailableSlots(postcode);
+  let slots=getAvailableSlots(pc);
   if(slots.length===0 && fee!==-1){
     const today=getDayIndex();
-    for(let i=1;i<=6;i++){ const nextDay=(today+i)%7; slots=getAvailableSlotsByDay(postcode,nextDay); if(slots.length>0)break; }
+    for(let i=1;i<=6;i++){ const nextDay=(today+i)%7; slots=getAvailableSlotsByDay(pc,nextDay); if(slots.length>0)break; }
   }
 
   deliverySlotEl.innerHTML='';
@@ -245,15 +293,25 @@ function updateSummary(postcode){
   deliverySlotEl.appendChild(defaultOption);
   slots.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; deliverySlotEl.appendChild(o); });
   deliverySlotEl.disabled=slots.length===0;
-  getPaymentBtn.disabled=slots.length===0;
+  
+  // Only enable payment if service is OK and a slot is selected (or if the field is disabled but service is OK)
+  if (fee !== -1) {
+    getPaymentBtn.disabled = slots.length === 0 || !deliverySlotEl.value;
+  }
 }
 
-postcodeEl.oninput=(e)=>updateSummary(e.target.value.trim());
-updateSummary(postcodeEl.value.trim());
+// Initial setup and input listener
+postcodeEl.oninput=(e)=>updateSummary(e.target.value);
+deliverySlotEl.onchange=()=>{ 
+  const fee=calculateDeliveryFee(postcodeEl.value);
+  getPaymentBtn.disabled = fee === -1 || !deliverySlotEl.value;
+};
+updateSummary(postcodeEl.value);
+
 
 document.getElementById("generateOTP").onclick=()=>{ currentOTP=Math.floor(1000+Math.random()*9000); otpDisplay.innerText=`Generated OTP: ${currentOTP}`; };
 
-// Payment Button
+// Payment Button (Proceed to Payment)
 getPaymentBtn.onclick=async(e)=>{ 
   e.preventDefault(); clearError();
   const customer={name:nameEl.value.trim(),email:emailEl.value.trim(),mobile:mobileEl.value.trim(),address:addressEl.value.trim(),suburb:suburbEl.value.trim(),state:stateEl.value,postcode:postcodeEl.value.trim(),deliverySlot:deliverySlotEl.value};
@@ -261,24 +319,46 @@ getPaymentBtn.onclick=async(e)=>{
 
   getPaymentBtn.disabled=true; getPaymentBtn.innerText="Processing...";
   try{
+    // Mock API call to your server.js for clientSecret
     const mockResponse={ok:true,json:()=>Promise.resolve({clientSecret:"pi_fake_client_secret_xyz",orderNumber:Math.floor(100000+Math.random()*900000).toString()})};
     const res=await mockResponse;
     const data=await res.json();
+    
     clientSecret=data.clientSecret; window.orderNumber=data.orderNumber;
-    elements=stripe.elements({clientSecret,appearance:{theme:'stripe'}});
+    
+    // Initialize Stripe Elements
+    elements=stripe.elements({clientSecret,appearance:{theme:'stripe', variables: { colorPrimary: '#10B981' }}});
+
     elements.create("payment").mount("#payment-element");
-    paymentContainer.style.display='block'; placeOrderBtn.style.display='block'; getPaymentBtn.style.display='none';
-    document.querySelectorAll('form input, form select').forEach(el=>el.disabled=true);
-  }catch(err){ displayError("Network error. Check server."); getPaymentBtn.innerText="Proceed to Payment"; getPaymentBtn.disabled=false; }
+    paymentContainer.style.display='block'; 
+    placeOrderBtn.style.display='block'; 
+    getPaymentBtn.style.display='none';
+    
+    // Disable address fields once payment is initiated
+    document.querySelectorAll('#checkout-form input, #checkout-form select').forEach(el=>el.disabled=true);
+  }catch(err){ 
+    displayError("Network error. Check server."); 
+    getPaymentBtn.innerText="Proceed to Payment"; 
+    getPaymentBtn.disabled=false; 
+  }
 };
 
 // Place Order Button
 placeOrderBtn.onclick=async(e)=>{
   e.preventDefault(); clearError();
   if(!currentOTP||Number(otpInput.value)!==currentOTP){ displayError("Invalid OTP. Generate and enter the correct OTP."); return; }
-  placeOrderBtn.innerText="Processing Payment..."; placeOrderBtn.disabled=true;
-  setTimeout(()=>{ window.location.href=`${window.location.origin}/success.html?order=${window.orderNumber}`; },1500);
+  
+  placeOrderBtn.innerText="Processing Payment..."; 
+  placeOrderBtn.disabled=true;
+  
+  // Mock Stripe confirmation success. In a real app, you would call: 
+  // const { paymentIntent, error } = await stripe.confirmPayment({ elements, confirmParams: { return_url: "..." } });
+  
+  setTimeout(()=>{ 
+    window.location.href=`${window.location.origin}/success.html?order=${window.orderNumber}`; 
+  },1500);
 };
+
 </script>
 </body>
 </html>
