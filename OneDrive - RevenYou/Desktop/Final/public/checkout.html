@@ -1,345 +1,500 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Checkout | GroceryGo</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GroceryGo — Checkout</title>
 
-<script src="https://js.stripe.com/v3/"></script>
+  <!-- Tailwind for quick modern layout -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://js.stripe.com/v3/"></script>
 
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #fafafa;
-        margin: 0;
-        padding: 0;
+  <style>
+    /* small polish on stripe element container */
+    #card-element > .StripeElement {
+      padding: 12px;
+      border-radius: 0.5rem;
+      border: 1px solid #e5e7eb;
     }
-    header {
-        padding: 15px;
-        background: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-    .container {
-        padding: 20px;
-        max-width: 600px;
-        margin: auto;
-    }
-    .card {
-        background: white;
-        padding: 20px;
-        margin-bottom: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .flex {
-        display: flex;
-        gap: 10px;
-    }
-    .input {
-        width: 100%;
-        padding: 12px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        margin-top: 6px;
-    }
-    button {
-        width: 100%;
-        padding: 14px;
-        border: none;
-        background: #2a7aee;
-        color: white;
-        font-size: 16px;
-        border-radius: 10px;
-        margin-top: 15px;
-    }
-    .summary-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 6px 0;
-    }
-    #card-element {
-        padding: 12px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        margin-top: 8px;
-    }
-    #confirmationBox {
-        margin-top: 20px;
-        padding: 20px;
-        background: #e8ffe9;
-        border-radius: 10px;
-        display: none;
-        text-align: center;
-    }
-    .back-link {
-        display: inline-block;
-        margin-top: 10px;
-        text-align: center;
-        width: 100%;
-        color: #2a7aee;
-        text-decoration: underline;
-    }
-</style>
+  </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800">
 
-<header>
-    <h3>Checkout</h3>
-    <a href="trolley.html" class="back-link">Back to Trolley</a>
-</header>
+  <div class="max-w-4xl mx-auto p-6">
+    <a href="./trolley.html" class="text-sm text-gray-600 hover:text-green-600 mb-4 inline-block">← Back to trolley</a>
+    <h1 class="text-2xl font-bold mb-6">Secure checkout</h1>
 
-<div class="container">
+    <div class="grid gap-6 lg:grid-cols-3">
+      <!-- form column -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Contact -->
+        <div class="bg-white p-5 rounded-lg shadow-sm">
+          <h2 class="font-semibold mb-3">1. Contact</h2>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <input id="inputName" class="px-3 py-2 border rounded" placeholder="Full name" value="Test Customer" />
+            <input id="inputEmail" type="email" class="px-3 py-2 border rounded" placeholder="Email" value="test@example.com" />
+            <input id="inputMobile" class="px-3 py-2 border rounded" placeholder="Mobile" value="0412345678" />
+            <input id="inputAddress" class="px-3 py-2 border rounded col-span-2" placeholder="Address line 1" value="123 Queen St" />
+          </div>
+        </div>
 
-    <!-- CUSTOMER DETAILS -->
-    <div class="card">
-        <h3>Your Details</h3>
-        <input id="name" class="input" placeholder="Full Name" />
-        <input id="email" class="input" placeholder="Email" />
-        <input id="phone" class="input" placeholder="Phone" />
-        <input id="address" class="input" placeholder="Street Address" />
-        <input id="suburb" class="input" placeholder="Suburb" />
-        <input id="postcode" class="input" placeholder="Postcode" />
-    </div>
+        <!-- Delivery address & slot -->
+        <div class="bg-white p-5 rounded-lg shadow-sm">
+          <h2 class="font-semibold mb-3">2. Delivery address & slot</h2>
 
-    <!-- DELIVERY SLOT -->
-    <div class="card">
-        <h3>Delivery Time</h3>
-        <select id="deliverySlot" class="input">
-            <option value="">Select delivery slot</option>
-        </select>
-    </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <input id="inputSuburb" class="px-3 py-2 border rounded" placeholder="Suburb" value="Brisbane" />
+            <select id="inputState" class="px-3 py-2 border rounded">
+              <option value="QLD" selected>QLD</option>
+              <option value="NSW">NSW</option>
+              <option value="VIC">VIC</option>
+            </select>
+            <input id="inputPostcode" class="px-3 py-2 border rounded" placeholder="Postcode" value="4000" />
+            <div id="serviceAreaMessage" class="text-sm col-span-2 mt-1"></div>
+          </div>
 
-    <!-- ORDER SUMMARY -->
-    <div class="card">
-        <h3>Order Summary</h3>
+          <div class="mt-4">
+            <label class="block text-sm font-medium mb-1">Delivery time (choose one)</label>
+            <select id="deliverySlot" class="w-full px-3 py-2 border rounded" required>
+              <option value="">Loading available slots...</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-2">Lead time: 8 hours. Slots rotate by group — you can also pick "Anytime" when available.</p>
+          </div>
+        </div>
 
-        <div id="summaryItems"></div>
+        <!-- Payment -->
+        <div class="bg-white p-5 rounded-lg shadow-sm">
+          <h2 class="font-semibold mb-3">3. Payment</h2>
+          <div id="paymentErrors" class="text-sm text-red-600 mb-2" role="alert"></div>
 
-        <div class="summary-row">
+          <div id="card-element">
+            <!-- Stripe Card Element mounts here -->
+          </div>
+
+          <div class="mt-4">
+            <button id="payButton" class="w-full bg-green-600 hover:bg-green-700 text-white rounded py-3 font-semibold mt-4">
+              Pay & place order
+            </button>
+          </div>
+
+          <div class="mt-3">
+            <button id="generateOtp" class="px-3 py-2 bg-gray-100 rounded text-sm">Generate OTP (testing)</button>
+            <div id="otpDisplay" class="mt-2 text-sm text-red-600 font-semibold"></div>
+            <input id="otpInput" class="mt-2 px-3 py-2 border rounded w-40" placeholder="Enter OTP" />
+          </div>
+        </div>
+      </div>
+
+      <!-- summary column -->
+      <aside class="space-y-6">
+        <div class="bg-white p-5 rounded-lg shadow-sm sticky top-6">
+          <h2 class="font-semibold mb-3">Order summary</h2>
+
+          <div id="itemsList" class="space-y-2 text-sm mb-3"></div>
+
+          <div class="flex justify-between mb-1">
             <span>Subtotal</span>
-            <span id="subtotalDisplay">$0.00</span>
-        </div>
+            <strong id="subtotalDisplay">$0.00</strong>
+          </div>
+          <div class="flex justify-between mb-1">
+            <span>Delivery fee</span>
+            <strong id="deliveryFeeDisplay">$0.00</strong>
+          </div>
 
-        <div class="summary-row">
-            <span>Delivery Fee</span>
-            <span id="deliveryFeeDisplay">$0.00</span>
-        </div>
+          <hr class="my-3" />
 
-        <hr>
-
-        <div class="summary-row" style="font-size:18px;font-weight:bold;">
+          <div class="flex justify-between text-lg font-bold">
             <span>Total</span>
-            <span id="grandTotalDisplay">$0.00</span>
+            <span id="totalDisplay">$0.00</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">You will be redirected to complete 3D Secure if required.</p>
         </div>
+
+        <div class="bg-white p-4 rounded-lg text-sm text-gray-600 shadow-sm">
+          <p class="font-semibold">Testing notes</p>
+          <ul class="list-disc ml-5 mt-2">
+            <li>Use Stripe test card <code>4242 4242 4242 4242</code>, future expiry, any CVC.</li>
+            <li>Server endpoint used: <code>/api/create-payment-intent</code></li>
+          </ul>
+        </div>
+      </aside>
     </div>
 
-    <!-- STRIPE -->
-    <div class="card">
-        <h3>Payment</h3>
-        <div id="card-element"></div>
-        <div id="card-errors" style="color:red;margin-top:10px;"></div>
+    <div id="confirmation" class="mt-6 p-4 bg-green-50 border border-green-100 rounded hidden">
+      <p class="font-semibold">Order placed — Thank you!</p>
+      <p id="confirmationText" class="text-sm mt-1"></p>
+      <a id="backToShop" href="./store.html" class="text-sm text-green-700 inline-block mt-2">Back to store</a>
     </div>
+  </div>
 
-    <button id="payBtn">Pay Now</button>
+  <script type="module">
+  // -------------------------
+  // CONFIG / KEYS
+  // -------------------------
+  // Use the publishable key you already gave earlier in this conversation.
+  // If you want to use a different key, replace the string below.
+  const STRIPE_PUBLISHABLE_KEY = "pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l";
 
-    <!-- CONFIRMATION -->
-    <div id="confirmationBox">
-        <h2>Order Confirmed!</h2>
-        <p id="orderMessage"></p>
-    </div>
+  // -------------------------
+  // TROLLEY & SUBTOTAL (localStorage keys used in your app)
+  // -------------------------
+  const TROLLEY_LS_KEY = "grocerygo_trolley";
+  const SUBTOTAL_LS_KEY = "grocerygo_subtotal";
 
-</div>
+  const trolley = JSON.parse(localStorage.getItem(TROLLEY_LS_KEY) || "[]");
+  const subtotalValue = parseFloat(localStorage.getItem(SUBTOTAL_LS_KEY) || (trolley.reduce((s,i)=>(s + (i.price||0)*(i.quantity||1)),0).toFixed(2))) || 0;
 
-<script>
-/* -------------------------------
-   1. LOAD TROLLEY DATA
----------------------------------*/
-const trolley = JSON.parse(localStorage.getItem("grocerygo_trolley")) || [];
-const subtotal = parseFloat(localStorage.getItem("grocerygo_subtotal") || "0");
+  // -------------------------
+  // DOM refs
+  // -------------------------
+  const inputName = document.getElementById("inputName");
+  const inputEmail = document.getElementById("inputEmail");
+  const inputMobile = document.getElementById("inputMobile");
+  const inputAddress = document.getElementById("inputAddress");
+  const inputSuburb = document.getElementById("inputSuburb");
+  const inputState = document.getElementById("inputState");
+  const inputPostcode = document.getElementById("inputPostcode");
+  const deliverySlotSel = document.getElementById("deliverySlot");
 
-/* Render summary items */
-function renderSummary() {
-    const box = document.getElementById("summaryItems");
-    box.innerHTML = "";
+  const itemsList = document.getElementById("itemsList");
+  const subtotalDisplay = document.getElementById("subtotalDisplay");
+  const deliveryFeeDisplay = document.getElementById("deliveryFeeDisplay");
+  const totalDisplay = document.getElementById("totalDisplay");
 
-    trolley.forEach(item => {
-        box.innerHTML += `
-            <div class="summary-row">
-                <span>${item.name} (${item.quantity}×)</span>
-                <span>$${(item.price * item.quantity).toFixed(2)}</span>
-            </div>
-        `;
-    });
+  const paymentErrors = document.getElementById("paymentErrors");
+  const payButton = document.getElementById("payButton");
+  const generateOtp = document.getElementById("generateOtp");
+  const otpDisplay = document.getElementById("otpDisplay");
+  const otpInput = document.getElementById("otpInput");
 
-    document.getElementById("subtotalDisplay").textContent = `$${subtotal.toFixed(2)}`;
-}
+  const confirmation = document.getElementById("confirmation");
+  const confirmationText = document.getElementById("confirmationText");
 
-renderSummary();
+  // -------------------------
+  // APPROVED POSTCODES & GROUPS (mirror server.js)
+  // -------------------------
+  const GROUP_A = [
+    4300,4301,4303,4304,4305,4306,4307,4308,4309,4310,4311,
+    4114,4118,4124,4125,4127,4128,4129,4131,4132,4133,4207,4280,4285,4290
+  ];
+  const GROUP_B = [
+    4169,4170,4171,4172,4173,4174,4178,4179,
+    4157,4158,4159,4160,4161,4163,4164,4165
+  ];
+  const GROUP_C = [
+    4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4520
+  ];
 
-/* -------------------------------
-   2. APPROVED POSTCODES GROUPING
----------------------------------*/
+  // Build approved list (as server)
+  const APPROVED_POSTCODES = Array.from(new Set([...GROUP_A, ...GROUP_B, ...GROUP_C])).map(n => Number(n));
 
-// Your approved list from memory
-const approvedPostcodes = [
-    4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,
-    4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,
-    4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,
-    4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,
-    4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,
-    4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4169,4170,4171,
-    4172,4173,4174,4178,4179,4183,4184,4205,4207,4280,4285,4300,4301,4303,4304,
-    4305,4306,4307,4308,4311,4340,4346,4500,4501,4502,4503,4504,4505,4506,4507,
-    4508,4509,4510,4511,4512,4513,4514,4515,4516,4517,4518,4519,4520,4521
-];
+  // Postcode distance mapping (mirrors server.js logic)
+  const ALL_POSTCODES = [...GROUP_A, ...GROUP_B, ...GROUP_C];
+  const POSTCODE_DISTANCES = ALL_POSTCODES.reduce((acc, pc, i) => {
+    if (GROUP_A.includes(pc)) acc[pc] = 30 + (i % 5);
+    else if (GROUP_B.includes(pc)) acc[pc] = 15 + (i % 5);
+    else if (GROUP_C.includes(pc)) acc[pc] = 1 + (i % 10);
+    return acc;
+  }, {});
 
-/* Postcode group logic */
-function getGroup(postcode) {
-    postcode = Number(postcode);
+  const DISTANCE_FEES = [
+    { maxKm: 10, fee: 10 },
+    { maxKm: 20, fee: 15 },
+    { maxKm: 30, fee: 20 },
+    { maxKm: Infinity, fee: 25 }
+  ];
 
-    const groupA = [4300,4301,4303,4304,4305,4306,4307,4308,4311,4340,4346,4114,4117,4118,4124,4125,4127];
-    const groupB = [4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165];
-    const groupC = approvedPostcodes.filter(p => !groupA.includes(p) && !groupB.includes(p));
-
-    if (groupA.includes(postcode)) return "A";
-    if (groupB.includes(postcode)) return "B";
-    if (groupC.includes(postcode)) return "C";
-    return null;
-}
-
-/* -------------------------------
-   3. DELIVERY FEE BASED ON DISTANCE
----------------------------------*/
-function getDeliveryFee(pc) {
-    pc = Number(pc);
-
-    const km0_10 = [4000,4005,4006,4007,4008];
-    const km10_20 = [4009,4010,4011,4012,4013];
-    const km20_30 = [4014,4017,4018,4029];
-    const km30_40 = [4030,4031,4032,4034];
-    const km40plus = approvedPostcodes.filter(p => ![...km0_10,...km10_20,...km20_30,...km30_40].includes(p));
-
-    if (km0_10.includes(pc)) return 10;
-    if (km10_20.includes(pc)) return 15;
-    if (km20_30.includes(pc)) return 20;
-    if (km30_40.includes(pc)) return 25;
+  function calculateFee(postcode) {
+    const d = POSTCODE_DISTANCES[Number(postcode)];
+    if (d === undefined) return -1;
+    for (const tier of DISTANCE_FEES) {
+      if (d <= tier.maxKm) return tier.fee;
+    }
     return 25;
-}
+  }
 
-/* -------------------------------
-   4. DELIVERY SLOT ROTATION
----------------------------------*/
-function loadSlots() {
-    const pc = document.getElementById("postcode").value;
-    const slotSel = document.getElementById("deliverySlot");
+  function getGroupForPostcode(pc) {
+    pc = Number(pc);
+    if (GROUP_A.includes(pc)) return "A";
+    if (GROUP_B.includes(pc)) return "B";
+    if (GROUP_C.includes(pc)) return "C";
+    return null;
+  }
 
-    slotSel.innerHTML = `<option value="">Select delivery slot</option>`;
+  // 3 standard slots (strings)
+  const SLOTS = ["8:00-11:00", "11:00-15:00", "15:00-18:00"];
 
-    if (!approvedPostcodes.includes(Number(pc))) {
-        slotSel.innerHTML += `<option>Postcode not serviceable</option>`;
-        return;
+  // Rotation mapping (follows user's rotation rules)
+  // We'll compute slot per group per day by offsetting (day-1)%3
+  function slotForGroupByDay(group, day) {
+    // day: 0..6 (Sun..Sat). No service on Sunday (0).
+    if (!group || day === 0) return null;
+    const base = (day - 1) % 3; // 0,1,2
+    if (group === "A") return SLOTS[base];               // A: base
+    if (group === "B") return SLOTS[(base + 1) % 3];     // B: shifted by 1
+    if (group === "C") return SLOTS[(base + 2) % 3];     // C: shifted by 2
+    return null;
+  }
+
+  // Provide "Anytime" option for today if 8-hour lead time still allows it
+  function getNextAvailableSlots(pc) {
+    const pcNum = Number(pc);
+    const group = getGroupForPostcode(pcNum);
+    if (!group) return [];
+    const slots = [];
+    const now = new Date();
+    const cutoff = new Date(now.getTime() + 8 * 60 * 60 * 1000); // now + 8h
+    // If today is Mon-Sat and cutoff before 18:00, add "Anytime" for today
+    const todayDow = now.getDay(); // 0..6
+    if (todayDow >= 1 && todayDow <= 6) {
+      const endToday = new Date(now);
+      endToday.setHours(18, 0, 0, 0);
+      if (cutoff.getTime() < endToday.getTime()) {
+        const label = `${now.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'numeric'})} - Anytime (8:00-18:00)`;
+        slots.push({value: `${now.toISOString().split('T')[0]}|Anytime`, text: label});
+      }
     }
-
-    const group = getGroup(pc);
-    const day = new Date().getDay(); // 1=Mon
-
-    let slots = [];
-
-    if (group === "A") {
-        slots = ["Monday 8–11", "Wednesday 11–3", "Friday 3–6"];
+    // Add rotating single slot per day up to 6 days ahead (skip Sundays)
+    for (let i = 0; i <= 6; i++) {
+      const check = new Date();
+      check.setDate((new Date()).getDate() + i);
+      const dow = check.getDay();
+      if (dow === 0) continue; // skip Sunday
+      const slot = slotForGroupByDay(group, dow);
+      if (!slot) continue;
+      // enforce 8-hour lead time for same-day slots
+      if (i === 0) {
+        const startHour = parseInt(slot.split(':')[0], 10);
+        const slotStart = new Date(check);
+        slotStart.setHours(startHour, 0, 0, 0);
+        if (slotStart.getTime() < cutoff.getTime()) {
+          // skip today's rotating slot if it starts before cutoff
+          continue;
+        }
+      }
+      const label = `${check.toLocaleDateString('en-AU', {weekday:'long', day:'numeric', month:'numeric'})} - ${slot}`;
+      slots.push({value: `${check.toISOString().split('T')[0]}|${slot}`, text: label});
     }
-    if (group === "B") {
-        slots = ["Tuesday 8–11", "Thursday 11–3", "Saturday 3–6"];
-    }
-    if (group === "C") {
-        slots = ["Monday 11–3", "Wednesday 3–6", "Friday 8–11"];
-    }
+    return slots;
+  }
 
-    slots.forEach(s => {
-        slotSel.innerHTML += `<option value="${s}">${s}</option>`;
+  // -------------------------
+  // UI: render items + totals
+  // -------------------------
+  function renderItems() {
+    itemsList.innerHTML = "";
+    if (!trolley || !trolley.length) {
+      itemsList.innerHTML = "<div class='text-sm text-gray-500'>Your trolley is empty.</div>";
+      subtotalDisplay.textContent = "$0.00";
+      deliveryFeeDisplay.textContent = "$0.00";
+      totalDisplay.textContent = "$0.00";
+      return;
+    }
+    trolley.forEach(it => {
+      const row = document.createElement("div");
+      row.className = "flex justify-between";
+      row.innerHTML = `<div class="text-sm">${escapeHtml(it.name)} <span class="text-xs text-gray-500">x${it.quantity}</span></div>
+                       <div class="text-sm">$${((it.price||0) * (it.quantity||1)).toFixed(2)}</div>`;
+      itemsList.appendChild(row);
     });
-}
+    subtotalDisplay.textContent = formatCurrency(subtotalValue);
+    updateDeliveryAndTotal();
+  }
 
-document.getElementById("postcode").addEventListener("input", () => {
-    loadSlots();
-    calculateTotals();
-});
+  function formatCurrency(n){ return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(n); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
-/* -------------------------------
-   5. TOTALS
----------------------------------*/
-function calculateTotals() {
-    const pc = document.getElementById("postcode").value;
-    const fee = getDeliveryFee(pc);
+  // Update delivery fee and total UI
+  function updateDeliveryAndTotal() {
+    const pc = inputPostcode.value.trim();
+    const fee = calculateFee(pc);
+    if (fee === -1) {
+      deliveryFeeDisplay.textContent = "N/A";
+      totalDisplay.textContent = "N/A";
+      serviceAreaMessage.innerText = `⚠️ Postcode ${pc || ''} is outside our service area.`;
+      serviceAreaMessage.className = "text-sm text-red-600 mt-1";
+      deliverySlotSel.innerHTML = '<option value="">Postcode not serviceable</option>';
+      payButton.disabled = true;
+      return;
+    }
+    const total = subtotalValue + fee;
+    deliveryFeeDisplay.textContent = formatCurrency(fee);
+    totalDisplay.textContent = formatCurrency(total);
+    serviceAreaMessage.innerText = `✅ Service available — Group ${getGroupForPostcode(pc)} • Distance ${POSTCODE_DISTANCES[Number(pc)].toFixed(1)} km • Fee ${formatCurrency(fee)}`;
+    serviceAreaMessage.className = "text-sm text-green-700 mt-1";
+    // load slots
+    loadSlotsForPostcode(pc);
+  }
 
-    document.getElementById("deliveryFeeDisplay").textContent = `$${fee.toFixed(2)}`;
-    document.getElementById("grandTotalDisplay").textContent = `$${(subtotal + fee).toFixed(2)}`;
-}
+  // Populate slot select for postcode
+  function loadSlotsForPostcode(pc) {
+    const opts = getNextAvailableSlots(pc);
+    deliverySlotSel.innerHTML = "";
+    if (!opts || !opts.length) {
+      const o = document.createElement("option");
+      o.value = "";
+      o.textContent = "No slots available in next 6 days";
+      deliverySlotSel.appendChild(o);
+      deliverySlotSel.disabled = true;
+      payButton.disabled = true;
+      return;
+    }
+    const defaultOpt = document.createElement("option");
+    defaultOpt.value = "";
+    defaultOpt.textContent = "Select delivery slot";
+    deliverySlotSel.appendChild(defaultOpt);
+    opts.forEach(s => {
+      const o = document.createElement("option");
+      o.value = s.value;
+      o.textContent = s.text;
+      deliverySlotSel.appendChild(o);
+    });
+    deliverySlotSel.disabled = false;
+    payButton.disabled = false;
+  }
 
-calculateTotals();
+  // Recompute when postcode or slot changes
+  inputPostcode.addEventListener("input", () => {
+    updateDeliveryAndTotal();
+  });
+  deliverySlotSel.addEventListener("change", () => {
+    // enable/disable pay
+    if (deliverySlotSel.value && calculateFee(inputPostcode.value) !== -1 && trolley.length) {
+      payButton.disabled = false;
+    } else {
+      payButton.disabled = true;
+    }
+  });
 
-/* -------------------------------
-   6. STRIPE SETUP
----------------------------------*/
-const stripe = Stripe("YOUR_PUBLISHABLE_KEY_HERE"); 
-const elements = stripe.elements();
+  // Render initially
+  renderItems();
 
-const card = elements.create("card", { hidePostalCode: true });
-card.mount("#card-element");
+  // -------------------------
+  // Stripe card element setup
+  // -------------------------
+  const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+  const stripeElements = stripe.elements();
+  const cardElement = stripeElements.create("card", {hidePostalCode: true});
+  cardElement.mount("#card-element");
 
-card.on("change", function(event) {
-    const displayError = document.getElementById("card-errors");
-    displayError.textContent = event.error ? event.error.message : "";
-});
+  cardElement.on("change", (ev) => {
+    paymentErrors.textContent = ev.error ? ev.error.message : "";
+  });
 
-/* -------------------------------
-   7. PAY NOW
----------------------------------*/
-document.getElementById("payBtn").onclick = async () => {
+  // Mock OTP for testing
+  let currentOTP = null;
+  generateOtp.addEventListener("click", () => {
+    currentOTP = Math.floor(1000 + Math.random() * 9000);
+    otpDisplay.textContent = `OTP (testing): ${currentOTP}`;
+  });
 
+  // -------------------------
+  // Create Payment Intent -> Confirm Payment
+  // -------------------------
+  payButton.addEventListener("click", async (e) => {
+    e.preventDefault();
+    paymentErrors.textContent = "";
+
+    if (!trolley || !trolley.length) {
+      paymentErrors.textContent = "Your trolley is empty.";
+      return;
+    }
+
+    // Basic client-side validation
     const customer = {
-        name: document.getElementById("name").value,
-        email: document.getElementById("email").value,
-        phone: document.getElementById("phone").value,
-        address: document.getElementById("address").value,
-        suburb: document.getElementById("suburb").value,
-        postcode: document.getElementById("postcode").value,
-        deliverySlot: document.getElementById("deliverySlot").value
+      name: inputName.value.trim(),
+      email: inputEmail.value.trim(),
+      mobile: inputMobile.value.trim(),
+      address: inputAddress.value.trim(),
+      suburb: inputSuburb.value.trim(),
+      state: inputState.value,
+      postcode: inputPostcode.value.trim(),
+      deliverySlot: deliverySlotSel.value
     };
 
-    const res = await fetch("/api/create-payment-intent", {
+    if (!customer.name || !customer.email || !customer.mobile || !customer.address || !customer.suburb || !customer.postcode || !customer.deliverySlot) {
+      paymentErrors.textContent = "Please complete all fields and select a delivery slot.";
+      return;
+    }
+
+    // OTP check if OTP generated (optional for your testing flow)
+    if (currentOTP && Number(otpInput.value) !== currentOTP) {
+      paymentErrors.textContent = "Invalid OTP (testing). Generate and enter the shown OTP.";
+      return;
+    }
+
+    payButton.disabled = true;
+    payButton.textContent = "Processing...";
+
+    try {
+      // call your server route (Vercel will map)
+      const res = await fetch("/api/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trolley, customer })
-    });
+      });
 
-    const data = await res.json();
-
-    const { clientSecret, orderNumber } = data;
-
-    const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: { card: card }
-    });
-
-    if (result.error) {
-        alert(result.error.message);
+      const payload = await res.json();
+      if (!res.ok) {
+        paymentErrors.textContent = payload?.error || "Failed to create payment intent.";
+        payButton.disabled = false;
+        payButton.textContent = "Pay & place order";
         return;
+      }
+
+      const clientSecret = payload.clientSecret;
+      const orderNumber = payload.orderNumber;
+
+      // Confirm card payment (handles 3D Secure if required)
+      const confirmResult = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: customer.name,
+            email: customer.email,
+            phone: customer.mobile,
+            address: { line1: customer.address, city: customer.suburb, postal_code: customer.postcode, state: customer.state, country: "AU" }
+          }
+        },
+        // We won't rely on Stripe redirect here — we'll redirect after checking result
+      });
+
+      if (confirmResult.error) {
+        // Payment failure
+        paymentErrors.textContent = confirmResult.error.message || "Payment failed.";
+        payButton.disabled = false;
+        payButton.textContent = "Pay & place order";
+        return;
+      }
+
+      // Success (PaymentIntent status will be 'succeeded' OR requires server-side webhook to finalize)
+      if (confirmResult.paymentIntent && (confirmResult.paymentIntent.status === "succeeded" || confirmResult.paymentIntent.status === "requires_capture")) {
+        // Show confirmation and clear trolley
+        confirmation.classList.remove("hidden");
+        confirmationText.innerText = `Order ${orderNumber} received. We'll email confirmation to ${customer.email}.`;
+        // clear client-side trolley used by app
+        localStorage.removeItem(TROLLEY_LS_KEY);
+        localStorage.removeItem(SUBTOTAL_LS_KEY);
+        // optionally redirect to success page:
+        // window.location.href = `/success.html?order=${orderNumber}`;
+      } else {
+        // Some flows may need additional confirmation (e.g., requires_action handled earlier) — treat conservatively
+        confirmation.classList.remove("hidden");
+        confirmationText.innerText = `Order ${orderNumber} created. If further authentication is required you will be prompted by Stripe.`;
+      }
+
+    } catch (err) {
+      console.error(err);
+      paymentErrors.textContent = err?.message || "Unexpected network error";
+    } finally {
+      payButton.disabled = false;
+      payButton.textContent = "Pay & place order";
     }
+  });
 
-    // PAYMENT SUCCESS
-    document.getElementById("confirmationBox").style.display = "block";
-    document.getElementById("orderMessage").textContent =
-        `Your order number is ${orderNumber}. A confirmation email has been sent.`;
+  // ensure initial state for postcode
+  updateDeliveryAndTotal();
 
-    localStorage.removeItem("grocerygo_trolley");
-    localStorage.removeItem("grocerygo_subtotal");
-};
-</script>
+  </script>
 </body>
 </html>
