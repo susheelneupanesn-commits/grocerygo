@@ -12,9 +12,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <h2 class="text-3xl font-bold text-gray-800 mt-4">Thank You!</h2>
-        <p class="text-lg text-gray-600 mt-2">Your order has been placed successfully.</p>
+        <p class="text-lg text-gray-600 mt-2">Your payment was successful and your order has been placed.</p>
         <p class="text-xl font-semibold text-indigo-600 mt-4">Order Number: <span id="orderNumberDisplay">...</span></p>
-        <p class="text-sm text-gray-500 mt-6">We have sent a confirmation email to your address.</p>
         <a href="store.html" class="mt-6 inline-block bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition">Continue Shopping</a>
     </div>
 
@@ -24,16 +23,15 @@
             const params = new URLSearchParams(window.location.search);
             const orderNumber = params.get('order');
             
-            // Display the order number if it exists
+            // Display the order number and clear the trolley
             const displayEl = document.getElementById('orderNumberDisplay');
             if (orderNumber) {
                 displayEl.textContent = orderNumber;
+                // Clear the local trolley after successful order
+                localStorage.removeItem("trolley");
             } else {
-                displayEl.textContent = 'N/A';
+                displayEl.textContent = 'N/A (Error finding order number)';
             }
-
-            // Clear the local trolley after successful order
-            localStorage.removeItem("trolley");
         });
     </script>
 </body>
