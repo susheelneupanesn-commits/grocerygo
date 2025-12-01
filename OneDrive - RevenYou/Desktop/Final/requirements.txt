@@ -1,0 +1,4 @@
+# Libraries needed for the Python server to handle requests and payments
+flask
+stripe
+python-dotenv

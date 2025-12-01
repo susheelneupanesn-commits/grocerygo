@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hot Deal | GroceryGo</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* Add your existing CSS here or link style.css */
+</style>
+</head>
+<body>
+
+<header>
+  <!-- Header copied from store page -->
+</header>
+
+<div class="container">
+  <h2>🔥 Hot Deals</h2>
+  <div class="subcategory-products" style="display:flex; gap:15px; overflow-x:auto; padding-bottom:10px;">
+    
+    <!-- Product 1 -->
+    <div class="product-card">
+      <div class="product-info">
+        <span class="product-brand">Brand A</span>
+        <span class="product-name">Hot Deal Item 1</span>
+        <span class="product-price" data-small="12.99">$12.99</span>
+      </div>
+      <select class="variant-select">
+        <option value="small" data-price="12.99">Small - $12.99</option>
+        <option value="medium" data-price="18.99">Medium - $18.99</option>
+        <option value="large" data-price="22.99">Large - $22.99</option>
+      </select>
+      <button class="add-to-cart-btn" onclick="addToTrolleyVariant('Hot Deal Item 1', this)">Add to Cart</button>
+    </div>
+
+    <!-- Product 2 -->
+    <div class="product-card">
+      <div class="product-info">
+        <span class="product-brand">Brand B</span>
+        <span class="product-name">Hot Deal Item 2</span>
+        <span class="product-price" data-small="9.99">$9.99</span>
+      </div>
+      <select class="variant-select">
+        <option value="small" data-price="9.99">Small - $9.99</option>
+        <option value="medium" data-price="14.99">Medium - $14.99</option>
+        <option value="large" data-price="19.99">Large - $19.99</option>
+      </select>
+      <button class="add-to-cart-btn" onclick="addToTrolleyVariant('Hot Deal Item 2', this)">Add to Cart</button>
+    </div>
+
+    <!-- Add more hot deal products similarly -->
+  </div>
+</div>
+
+<script>
+function addToTrolleyVariant(name, btn){
+  const card = btn.closest('.product-card');
+  const select = card.querySelector('.variant-select');
+  const price = parseFloat(select.selectedOptions[0].dataset.price);
+
+  let trolley = JSON.parse(localStorage.getItem('trolleyItems') || '[]');
+  trolley.push({name, price, quantity:1, variant: select.value});
+  localStorage.setItem('trolleyItems', JSON.stringify(trolley));
+  updateTrolleyCount();
+  alert(`✅ Added ${name} (${select.value}) to trolley`);
+}
+
+function updateTrolleyCount(){
+  const trolleyItems = JSON.parse(localStorage.getItem('trolleyItems') || '[]');
+  const el = document.getElementById('trolleyCount');
+  if(el) el.innerText = trolleyItems.length;
+}
+updateTrolleyCount();
+
+document.querySelectorAll('.variant-select').forEach(sel => {
+  sel.addEventListener('change', function(){
+    const card = this.closest('.product-card');
+    const priceEl = card.querySelector('.product-price');
+    priceEl.innerText = `$${parseFloat(this.selectedOptions[0].dataset.price).toFixed(2)}`;
+  });
+});
+</script>
+
+<footer>
+  © 2025 GroceryGo. All rights reserved.
+</footer>
+
+</body>
+</html>

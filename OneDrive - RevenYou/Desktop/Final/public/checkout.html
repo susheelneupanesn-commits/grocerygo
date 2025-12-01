@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF‑8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout</title>
+  <script src="https://js.stripe.com/v3"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f3f4f6; }
+    .StripeElement { padding: 12px; border: 1px solid #ccc; border-radius: 6px; background: white; }
+  </style>
+</head>
+<body class="p-4">
+  <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
+    <h2 class="text-2xl mb-4">Checkout</h2>
+    <form id="payment-form">
+      <input id="name" type="text" placeholder="Full Name" required class="w-full mb-3 p-2 border" />
+      <input id="email" type="email" placeholder="Email" required class="w-full mb-3 p-2 border" />
+      <input id="phone" type="tel" placeholder="Mobile" required class="w-full mb-3 p-2 border" />
+      <input id="address" type="text" placeholder="Address" required class="w-full mb-3 p-2 border" />
+      <input id="suburb" type="text" placeholder="Suburb" required class="w-full mb-3 p-2 border" />
+      <input id="state" type="text" placeholder="State" required class="w-full mb-3 p-2 border" />
+      <input id="postcode" type="text" placeholder="Postcode" required class="w-full mb-3 p-2 border" />
+      <div id="card-element" class="StripeElement"></div>
+      <button id="pay" class="w-full mt-4 bg-indigo-600 text-white p-3 rounded">Pay</button>
+      <div id="message" class="mt-4 text-center"></div>
+    </form>
+  </div>
+
+  <script>
+    const stripe = Stripe("pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l"); // 
+    const elements = stripe.elements();
+    const card = elements.create("card");
+    card.mount("#card-element");
+
+    document.getElementById("payment-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("pay");
+      btn.disabled = true;
+
+      const customer = {
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        mobile: document.getElementById("phone").value,
+        address: document.getElementById("address").value,
+        suburb: document.getElementById("suburb").value,
+        state: document.getElementById("state").value,
+        postcode: document.getElementById("postcode").value
+      };
+
+      const trolley = JSON.parse(localStorage.getItem("trolley") || "[]");
+      if (!trolley.length) {
+        document.getElementById("message").textContent = "Cart is empty.";
+        btn.disabled = false;
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trolley, customer })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || "Payment intent failed");
+
+        const { clientSecret, orderNumber } = data;
+        const result = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: { card, billing_details: { name: customer.name, email: customer.email } }
+        });
+
+        if (result.error) throw result.error;
+        if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
+          document.getElementById("message").textContent = `Success! Order #${orderNumber}`;
+          localStorage.removeItem("trolley");
+        } else {
+          throw new Error("Payment not completed");
+        }
+      } catch (err) {
+        document.getElementById("message").textContent = err.message;
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
