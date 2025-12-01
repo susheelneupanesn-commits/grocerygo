@@ -152,6 +152,9 @@
             <!-- OTP Verification -->
             <div class="custom-card border-2 border-dashed border-red-300">
                 <h2 class="text-xl font-semibold text-gray-700 mb-4">OTP Verification (Testing Only)</h2>
+                <p class="text-sm text-gray-500 mb-3">
+                    This step simulates the final server-side verification before confirming payment.
+                </p>
                 <button id="generateOTP" class="w-full p-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition duration-150 ease-in-out mb-3">
                     Generate OTP
                 </button>
@@ -182,6 +185,10 @@
                         <span id="grandTotalAmount" class="text-green-600"></span>
                     </div>
                 </div>
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200 text-sm text-blue-800">
+                    <p class="font-semibold mb-1">📢 How to Test Payment:</p>
+                    <p>Use a Stripe test card number (e.g., <code class="font-mono">4242 4242 4242 4242</code>, any future date, any CVC) in the card field.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -191,7 +198,7 @@
 // ----------------------
 // Stripe & DOM elements
 // ----------------------
-const STRIPE_PUBLISHABLE_KEY = "pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l";
+const STRIPE_PUBLISHABLE_KEY = "pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQOwg3DPKcOlg00VHp43m4l";
 const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
 const nameEl = document.getElementById("customerName");
@@ -217,14 +224,15 @@ let elements, clientSecret, currentOTP = null;
 window.orderNumber = null;
 
 // ----------------------
-// Logistics Data
+// Logistics Data & Rotation Logic
 // ----------------------
-// NOTE: This large data array logic is preserved exactly as provided by the user.
 const GROUP_A = [4300,4301,4303,4304,4305,4306,4307,4308,4311,4114,4118,4124,4125,4127,4128,4129,4131,4132,4133,4207,4280,4285,4290];
 const GROUP_B = [4169,4170,4171,4172,4173,4174,4178,4179,4157,4158,4159,4160,4161,4163,4164,4165];
 const GROUP_C = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4520];
 
-const SLOTS = ["8:00-11:00","11:00-15:00","15:00-18:00"];
+// The three delivery time windows
+const SLOTS = ["8:00-11:00 (Early)", "11:00-15:00 (Mid)", "15:00-18:00 (Late)"];
+
 const POSTCODE_DISTANCES = Object.fromEntries([...GROUP_A,...GROUP_B,...GROUP_C].map((p,i)=>{
   if(GROUP_A.includes(p)) return [p,30+i%5];
   if(GROUP_B.includes(p)) return [p,15+i%5];
@@ -234,23 +242,143 @@ const POSTCODE_DISTANCES = Object.fromEntries([...GROUP_A,...GROUP_B,...GROUP_C]
 const DISTANCE_FEES = [{maxKm:10,fee:10},{maxKm:20,fee:15},{maxKm:30,fee:20},{maxKm:Infinity,fee:25}];
 
 function getPostcodeGroup(pc){ const p=Number(pc); if(GROUP_A.includes(p)) return'A'; if(GROUP_B.includes(p)) return'B'; if(GROUP_C.includes(p)) return'C'; return null; }
-function getDayIndex(){ return new Date().getDay(); }
-function getAvailableSlots(pc){ return getAvailableSlotsByDay(pc,getDayIndex()); }
-function getAvailableSlotsByDay(pc,day){ 
-  const group=getPostcodeGroup(pc); if(!group||day===0)return[];
-  const rotation={'A':{1:[SLOTS[0]],2:[],3:[SLOTS[1]],4:[],5:[SLOTS[2]],6:[]},'B':{1:[],2:[SLOTS[0]],3:[],4:[SLOTS[1]],5:[],6:[SLOTS[2]]},'C':{1:[SLOTS[1],SLOTS[2]],2:[SLOTS[1],SLOTS[2]],3:[SLOTS[0],SLOTS[2]],4:[SLOTS[0],SLOTS[2]],5:[SLOTS[0],SLOTS[1]],6:[SLOTS[0],SLOTS[1]]}}; 
-  return rotation[group][day]||[];
-}
-function calculateDeliveryFee(pc){ const d=POSTCODE_DISTANCES[Number(pc)]; if(d===undefined)return-1; for(const f of DISTANCE_FEES){ if(d<=f.maxKm) return f.fee; } return 25; }
 function formatCurrency(amount){ return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(amount); }
 function displayError(msg){ statusMessage.innerText=msg; statusMessage.classList.remove('hidden'); }
 function clearError(){ statusMessage.classList.add('hidden'); statusMessage.innerText=''; }
+function calculateDeliveryFee(pc){ const d=POSTCODE_DISTANCES[Number(pc)]; if(d===undefined)return-1; for(const f of DISTANCE_FEES){ if(d<=f.maxKm) return f.fee; } return 25; }
+
+/**
+ * Extracts the start hour (24h format) from a slot string.
+ * e.g., "11:00-15:00 (Mid)" -> 11
+ */
+function getSlotStartTimeHour(slotString) {
+    const timePart = slotString.split('-')[0]; 
+    return parseInt(timePart.split(':')[0], 10); 
+}
+
+/**
+ * Determines the single delivery slot for a postcode group on a specific day.
+ * @param {string} pc - Postcode
+ * @param {number} day - Day of the week (1=Mon, 6=Sat)
+ * @returns {string | null} The single available slot string, or null.
+ */
+function getAvailableSlotsByDay(pc, day) {
+    // 0 (Sunday) is not a scheduled delivery day.
+    if (day === 0) return null; 
+
+    const group = getPostcodeGroup(pc);
+    if (!group) return null;
+    
+    // Day 1=Mon, 2=Tue, ..., 6=Sat
+    // The rotation is based on (Day - 1) % 3 to cycle through slots
+    const rotationBase = (day - 1) % 3; 
+    
+    let slotIndex;
+
+    // Systematic distribution for load balancing:
+    if (group === 'A') {
+        slotIndex = rotationBase;
+    } else if (group === 'B') {
+        slotIndex = (rotationBase + 1) % 3;
+    } else if (group === 'C') {
+        slotIndex = (rotationBase + 2) % 3;
+    } else {
+        return null; 
+    }
+
+    return SLOTS[slotIndex];
+}
+
+/**
+ * Searches up to 6 days ahead for available slots, enforcing the 8-hour lead time.
+ */
+function getNextAvailableSlots(pc) {
+    const slots = [];
+    const today = new Date();
+    // 8-hour lead time for preparation
+    const cutoffTime = new Date(today.getTime() + 8 * 60 * 60 * 1000); 
+    const MAX_DAYS_AHEAD = 6; 
+    const group = getPostcodeGroup(pc);
+
+
+    // 1. Add the "Anytime" option for today, if applicable (8:00 AM - 6:00 PM)
+    const todayDayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
+    
+    // Check if today is a delivery day (Monday=1 to Saturday=6)
+    if (todayDayOfWeek >= 1 && todayDayOfWeek <= 6) {
+        // Calculate the end of the delivery window today (6:00 PM / 18:00)
+        const endOfTodayDelivery = new Date(today);
+        endOfTodayDelivery.setHours(18, 0, 0, 0);
+
+        // If current time + 8 hours is before 6 PM today, "Anytime" is still possible today.
+        if (cutoffTime.getTime() < endOfTodayDelivery.getTime()) {
+            const dateString = today.toLocaleDateString('en-AU', { month: 'numeric', day: 'numeric' });
+            const dayName = today.toLocaleDateString('en-AU', { weekday: 'long' });
+            
+            slots.push({
+                value: `${today.toISOString().split('T')[0]}|Anytime`,
+                text: `${dayName}, ${dateString} - Anytime (8:00 AM - 6:00 PM)`
+            });
+        }
+    }
+
+
+    // 2. Add next 6 days of rotating 3-hour slots, respecting the 8-hour lead time.
+    for (let i = 0; i <= MAX_DAYS_AHEAD; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(today.getDate() + i);
+        
+        const dayOfWeek = checkDate.getDay(); // 0 (Sun) to 6 (Sat)
+        
+        // Skip Sunday
+        if (dayOfWeek === 0) continue;
+
+        const availableSlot = getAvailableSlotsByDay(pc, dayOfWeek);
+        
+        if (availableSlot) {
+            let isAvailable = true;
+
+            if (i === 0) {
+                // If checking TODAY, enforce 8-hour constraint for the specific slot
+                const slotStartHour = getSlotStartTimeHour(availableSlot);
+                
+                // Create a Date object for the start of the slot today
+                const slotStartDate = new Date(today);
+                // Set hours using local time components
+                slotStartDate.setHours(slotStartHour, 0, 0, 0); 
+                
+                // If the slot starts before the 8-hour cutoff, it's not available today.
+                if (slotStartDate.getTime() < cutoffTime.getTime()) {
+                    isAvailable = false;
+                }
+            }
+            
+            if (isAvailable) {
+                const dateString = checkDate.toLocaleDateString('en-AU', { month: 'numeric', day: 'numeric' });
+                const dayName = checkDate.toLocaleDateString('en-AU', { weekday: 'long' });
+                
+                // Format: "DayName, Date - SlotTime (Group)"
+                const formattedSlot = `${dayName}, ${dateString} - ${availableSlot}`;
+                
+                slots.push({
+                    // Store Date|Time for internal use
+                    value: `${checkDate.toISOString().split('T')[0]}|${availableSlot}`,
+                    text: formattedSlot
+                });
+            }
+        }
+    }
+    return slots;
+}
+// --- END OF NEW LOGIC ---
 
 // ----------------------
 // Initialization
 // ----------------------
 const trolley=JSON.parse(localStorage.getItem("grocerygo_trolley")||"[]");
-let subtotal=trolley.reduce((s,i)=>s+(i.price||0)*(i.quantity||1),0) || 120.50; // Use a default if trolley is empty for demonstration
+// Use trolley data if available, otherwise use a default mock subtotal
+let subtotal=trolley.reduce((s,i)=>s+(i.price||0)*(i.quantity||1),0) || 120.50;
+
 
 // ----------------------
 // UI Update & Logic
@@ -260,7 +388,6 @@ function updateSummary(postcode){
   const fee=calculateDeliveryFee(pc);
   let total=subtotal+(fee>0?fee:0);
   
-  // Reset message
   serviceAreaMessage.classList.remove('service-ok', 'service-warn');
   serviceAreaMessage.textContent = '';
 
@@ -273,30 +400,32 @@ function updateSummary(postcode){
   }
   else{ 
     serviceAreaMessage.classList.add('service-ok'); 
-    serviceAreaMessage.textContent=`✅ Service available. Distance: ${POSTCODE_DISTANCES[Number(pc)].toFixed(1)} km. Fee: ${formatCurrency(fee)}.`; 
+    serviceAreaMessage.textContent=`✅ Service available for Group ${getPostcodeGroup(pc)}. Distance: ${POSTCODE_DISTANCES[Number(pc)].toFixed(1)} km. Fee: ${formatCurrency(fee)}.`; 
     feeSpan.innerText=formatCurrency(fee); 
     totalSpan.innerText=formatCurrency(total); 
   }
 
   subtotalSpan.innerText=formatCurrency(subtotal);
 
-  let slots=getAvailableSlots(pc);
-  if(slots.length===0 && fee!==-1){
-    const today=getDayIndex();
-    for(let i=1;i<=6;i++){ const nextDay=(today+i)%7; slots=getAvailableSlotsByDay(pc,nextDay); if(slots.length>0)break; }
-  }
+  let availableSlots=getNextAvailableSlots(pc);
 
   deliverySlotEl.innerHTML='';
   const defaultOption=document.createElement('option');
   defaultOption.value=''; defaultOption.disabled=true; defaultOption.selected=true;
-  defaultOption.textContent=slots.length>0?"Select a time slot":"No slots available";
+  defaultOption.textContent=availableSlots.length>0?"Select an available slot":"No delivery slots available in the next 6 days";
   deliverySlotEl.appendChild(defaultOption);
-  slots.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; deliverySlotEl.appendChild(o); });
-  deliverySlotEl.disabled=slots.length===0;
   
-  // Only enable payment if service is OK and a slot is selected (or if the field is disabled but service is OK)
+  availableSlots.forEach(s=>{ 
+      const o=document.createElement('option'); 
+      o.value=s.value; 
+      o.textContent=s.text; 
+      deliverySlotEl.appendChild(o); 
+  });
+  
+  deliverySlotEl.disabled=availableSlots.length===0;
+  
   if (fee !== -1) {
-    getPaymentBtn.disabled = slots.length === 0 || !deliverySlotEl.value;
+    getPaymentBtn.disabled = availableSlots.length === 0 || !deliverySlotEl.value;
   }
 }
 
@@ -309,7 +438,10 @@ deliverySlotEl.onchange=()=>{
 updateSummary(postcodeEl.value);
 
 
-document.getElementById("generateOTP").onclick=()=>{ currentOTP=Math.floor(1000+Math.random()*9000); otpDisplay.innerText=`Generated OTP: ${currentOTP}`; };
+document.getElementById("generateOTP").onclick=()=>{ 
+    currentOTP=Math.floor(1000+Math.random()*9000); 
+    otpDisplay.innerText=`Generated OTP: ${currentOTP}`; 
+};
 
 // Payment Button (Proceed to Payment)
 getPaymentBtn.onclick=async(e)=>{ 
@@ -319,7 +451,7 @@ getPaymentBtn.onclick=async(e)=>{
 
   getPaymentBtn.disabled=true; getPaymentBtn.innerText="Processing...";
   try{
-    // Mock API call to your server.js for clientSecret
+    // Mock API call to get a clientSecret (must be real in production, but mocked here)
     const mockResponse={ok:true,json:()=>Promise.resolve({clientSecret:"pi_fake_client_secret_xyz",orderNumber:Math.floor(100000+Math.random()*900000).toString()})};
     const res=await mockResponse;
     const data=await res.json();
@@ -334,8 +466,7 @@ getPaymentBtn.onclick=async(e)=>{
     placeOrderBtn.style.display='block'; 
     getPaymentBtn.style.display='none';
     
-    // Disable address fields once payment is initiated
-    document.querySelectorAll('#checkout-form input, #checkout-form select').forEach(el=>el.disabled=true);
+    document.querySelectorAll('input, select').forEach(el=>el.disabled=true);
   }catch(err){ 
     displayError("Network error. Check server."); 
     getPaymentBtn.innerText="Proceed to Payment"; 
@@ -346,19 +477,40 @@ getPaymentBtn.onclick=async(e)=>{
 // Place Order Button
 placeOrderBtn.onclick=async(e)=>{
   e.preventDefault(); clearError();
-  if(!currentOTP||Number(otpInput.value)!==currentOTP){ displayError("Invalid OTP. Generate and enter the correct OTP."); return; }
+  
+  // 1. OTP Verification (Local Test Requirement)
+  if(!currentOTP||Number(otpInput.value)!==currentOTP){ 
+    displayError("Invalid OTP. Generate and enter the correct OTP."); 
+    return; 
+  }
   
   placeOrderBtn.innerText="Processing Payment..."; 
   placeOrderBtn.disabled=true;
-  
-  // Mock Stripe confirmation success. In a real app, you would call: 
-  // const { paymentIntent, error } = await stripe.confirmPayment({ elements, confirmParams: { return_url: "..." } });
-  
-  setTimeout(()=>{ 
-    window.location.href=`${window.location.origin}/success.html?order=${window.orderNumber}`; 
-  },1500);
-};
 
+  // 2. Stripe Payment Confirmation (Real Flow)
+  try {
+      const { error } = await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+              // This URL is where Stripe redirects the user after 3D Secure or other required actions.
+              return_url: `${window.location.origin}/success.html?order=${window.orderNumber}`,
+          },
+      });
+
+      if (error) {
+          // This will be displayed if the card fails or other Stripe validation issues occur
+          displayError(`Payment Failed: ${error.message}`);
+          placeOrderBtn.innerText="Place Order & Pay"; 
+          placeOrderBtn.disabled=false;
+      }
+      // If no error, Stripe handles the redirect via the return_url on success.
+      
+  } catch (err) {
+      displayError(`An unexpected error occurred: ${err.message}`);
+      placeOrderBtn.innerText="Place Order & Pay"; 
+      placeOrderBtn.disabled=false;
+  }
+};
 </script>
 </body>
 </html>
