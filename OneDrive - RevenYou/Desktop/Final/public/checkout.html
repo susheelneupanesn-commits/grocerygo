@@ -11,112 +11,174 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .StripeElement {
-            box-sizing: border-box; height: 44px; padding: 12px;
-            border: 1px solid #d1d5db; border-radius: 0.5rem;
-            background-color: white; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            box-sizing: border-box; height: 48px; padding: 14px;
+            border: 1px solid #e5e7eb; border-radius: 0.5rem;
+            background-color: white; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             transition: all 150ms ease;
         }
-        .StripeElement--focus { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.5); border-color: #3b82f6; }
+        .StripeElement--focus { box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.5); border-color: #4f46e5; }
+        
+        /* Custom styles for the sticky summary on desktop */
+        @media (min-width: 1024px) {
+            .summary-card { position: sticky; top: 2rem; }
+        }
+        /* Custom radio button styles */
+        .time-slot-radio:checked + label {
+            background-color: #4f46e5; /* Indigo-600 */
+            color: white;
+            border-color: #4f46e5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .time-slot-radio + label {
+            transition: all 0.2s;
+        }
     </style>
 </head>
-<body class="min-h-screen flex items-start justify-center p-6">
+<body class="min-h-screen p-4 lg:p-8">
 
-    <div class="w-full max-w-xl bg-white shadow-2xl rounded-xl p-8 space-y-8 border border-gray-100 mt-10">
-        <h1 class="text-3xl font-bold text-gray-900 text-center border-b pb-4">
-            Order Payment
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-extrabold text-gray-900 mb-8 border-b pb-4">
+            Secure Checkout
         </h1>
         
-        <!-- Payment Form -->
-        <form id="payment-form" class="space-y-6">
+        <form id="payment-form" class="lg:grid lg:grid-cols-3 lg:gap-12">
             
-            <div id="auth-status" class="text-center text-sm p-2 rounded-lg">Authenticating...</div>
-            
-            <h2 class="text-xl font-semibold text-gray-700 mt-6 mb-4">Shipping & Contact Details (QLD Example)</h2>
+            <!-- Left Column: Shipping & Payment Details -->
+            <div class="lg:col-span-2 space-y-10">
 
-            <!-- Name and Email -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Billing Name</label>
-                    <input id="name" type="text" value="Jane Doe" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-                </div>
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                    <input id="email" type="email" value="jane.doe@example.com" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                <!-- Auth Status -->
+                <div id="auth-status" class="text-center text-sm p-3 rounded-lg bg-gray-100 text-gray-700">Authenticating...</div>
+                
+                <!-- Section 1: Contact and Shipping -->
+                <section class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 space-y-6">
+                    <h2 class="text-2xl font-bold text-gray-800 border-b pb-3 mb-4">1. Shipping Information</h2>
+                    
+                    <!-- Name and Email -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Billing Name</span>
+                            <input id="name" type="text" value="Jane Doe" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Email Address</span>
+                            <input id="email" type="email" value="jane.doe@example.com" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        </label>
+                    </div>
+
+                    <!-- Phone and Address Line 1 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Phone Number</span>
+                            <input id="phone" type="tel" value="0412 345 678" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Address Line 1</span>
+                            <input id="address" type="text" value="1 King George Square" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        </label>
+                    </div>
+
+                    <!-- Suburb, State, and Zip -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Suburb (City)</span>
+                            <input id="suburb" type="text" value="Brisbane" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">State (e.g., QLD)</span>
+                            <input id="state" type="text" value="QLD" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Postcode</span>
+                            <input id="zip" type="text" value="4000" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        </label>
+                    </div>
+                </section>
+                
+                <!-- Section 2: Delivery Slot Picker (New Feature) -->
+                <section class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 space-y-6">
+                    <h2 class="text-2xl font-bold text-gray-800 border-b pb-3 mb-4">2. Choose Delivery Slot</h2>
+
+                    <!-- Date Picker -->
+                    <label class="block">
+                        <span class="text-sm font-medium text-gray-700">Select Date</span>
+                        <input type="date" id="delivery-date" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    </label>
+
+                    <!-- Time Slots -->
+                    <div class="space-y-3">
+                        <span class="text-sm font-medium text-gray-700 block">Available Time Slots (<span id="selected-day-display">Select a Date</span>)</span>
+                        <div id="time-slot-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <!-- Time slots will be dynamically generated here -->
+                            <p id="slot-placeholder" class="text-gray-500 col-span-full">Please select a delivery date first.</p>
+                        </div>
+                        <input type="hidden" id="deliverySlot" value="">
+                    </div>
+                </section>
+
+                <!-- Section 3: Payment Details -->
+                <section class="bg-white p-6 rounded-xl shadow-lg border border-gray-100 space-y-6">
+                    <h2 class="text-2xl font-bold text-gray-800 border-b pb-3 mb-4">3. Payment Details</h2>
+
+                    <!-- Stripe Payment Element Container -->
+                    <div>
+                        <label for="card-element" class="block text-sm font-medium text-gray-700 mb-2">
+                            Card Details
+                        </label>
+                        <div id="card-element"></div>
+                    </div>
+
+                    <!-- Message Box -->
+                    <div id="message-box" class="hidden p-4 rounded-lg text-sm" role="alert">
+                        <p id="message-text" class="font-medium"></p>
+                    </div>
+                </section>
+
+                <!-- Submit Button for Mobile -->
+                <div class="lg:hidden pb-10">
+                    <button id="submit-button-mobile" type="submit" 
+                            class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-xl transition duration-150 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 disabled:opacity-50 text-lg"
+                            disabled>
+                        <span id="button-text-mobile">Pay $0.00</span>
+                        <div id="spinner-mobile" class="hidden inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white align-middle ml-2"></div>
+                    </button>
                 </div>
             </div>
 
-            <!-- Phone -->
-            <div>
-                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number (Australian Mobile)</label>
-                <input id="phone" type="tel" value="0412 345 678" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-            </div>
+            <!-- Right Column: Order Summary (Sticky on Desktop) -->
+            <div class="lg:col-span-1 mt-8 lg:mt-0">
+                <div class="summary-card bg-indigo-50 p-6 rounded-xl shadow-xl border border-indigo-200 space-y-4">
+                    <h2 class="text-2xl font-bold text-indigo-800 pb-3 border-b border-indigo-200">Order Summary</h2>
+                    
+                    <!-- Dynamic Order Items -->
+                    <div id="order-details" class="space-y-2 text-gray-700">
+                        <!-- Items will be populated here -->
+                    </div>
+                    
+                    <div class="border-t border-indigo-300 pt-4">
+                        <div class="flex justify-between items-center text-lg font-medium text-indigo-700">
+                            <span>Delivery Fee Est.</span>
+                            <span id="delivery-fee-display" class="font-semibold text-yellow-700">$0.00</span>
+                        </div>
+                    </div>
 
-            <!-- Address -->
-            <div>
-                <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Shipping Address</label>
-                <input id="address" type="text" value="1 King George Square" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-            </div>
+                    <div class="border-t border-indigo-300 my-4 pt-4">
+                        <div class="flex justify-between items-center font-extrabold text-3xl text-indigo-800">
+                            <span>Total</span>
+                            <span id="final-total-display">$0.00 AUD</span>
+                        </div>
+                    </div>
+                    
+                    <p id="delivery-info" class="text-xs text-indigo-600 font-medium text-center">Enter a valid 4-digit Australian Postcode to calculate delivery.</p>
 
-            <!-- City and Zip -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City/Suburb</label>
-                    <input id="city" type="text" value="Brisbane" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-                </div>
-                <div>
-                    <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">Zip / Postal Code</label>
-                    <!-- Delivery calculation is tied to input change on this field -->
-                    <input id="zip" type="text" value="4000" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-                </div>
-            </div>
-            
-             <!-- State and Delivery Slot (Added State to match server's customer object) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State (e.g., QLD)</label>
-                    <input id="state" type="text" value="QLD" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-                </div>
-                <div>
-                    <label for="deliverySlot" class="block text-sm font-medium text-gray-700 mb-1">Delivery Slot (Date|Time)</label>
-                    <input id="deliverySlot" type="text" value="2025-12-01|Anytime" required class="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-                </div>
-            </div>
-
-            <!-- Order Summary (Moved Below Shipping Details) -->
-            <div class="bg-indigo-50 p-5 rounded-lg border border-indigo-200 mt-6">
-                <h2 class="text-xl font-semibold text-indigo-800 mb-2">Final Order Summary</h2>
-                <p id="delivery-info" class="text-sm text-indigo-600 mb-3 font-medium">Delivery fee calculated by server based on postcode.</p>
-                <div id="order-details" class="space-y-1">
-                    <!-- Dynamic items will be populated here by JavaScript -->
-                </div>
-                <div class="border-t border-indigo-300 my-3"></div>
-                <div class="flex justify-between font-extrabold text-2xl text-indigo-700">
-                    <span>TOTAL (Server Calculated)</span>
-                    <span id="final-total-display">$0.00 AUD</span>
+                    <!-- Submit Button for Desktop -->
+                    <button id="submit-button-desktop" type="submit" 
+                            class="hidden lg:block w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-lg transition duration-150 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 disabled:opacity-50 text-lg"
+                            disabled>
+                        <span id="button-text-desktop">Pay $0.00</span>
+                        <div id="spinner-desktop" class="hidden inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white align-middle ml-2"></div>
+                    </button>
                 </div>
             </div>
-
-            <h2 class="text-xl font-semibold text-gray-700 mt-8 mb-4 border-t pt-4">Payment Information</h2>
-
-            <!-- Stripe Payment Element Container -->
-            <div>
-                <label for="card-element" class="block text-sm font-medium text-gray-700 mb-2">
-                    Card Details
-                </label>
-                <div id="card-element"></div>
-            </div>
-
-            <!-- Message Box -->
-            <div id="message-box" class="hidden p-4 rounded-lg text-sm" role="alert">
-                <p id="message-text" class="font-medium"></p>
-            </div>
-            
-            <button id="submit-button" type="submit" 
-                    class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-lg transition duration-150 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 disabled:opacity-50"
-                    disabled>
-                <span id="button-text">Pay $0.00</span>
-                <div id="spinner" class="hidden inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white align-middle mr-2"></div>
-            </button>
         </form>
     </div>
     
@@ -132,10 +194,7 @@
         document.head.appendChild(stripeScript);
         
         // --- Globals ---
-        // CRITICAL FIX: The server expects product prices in AUD (dollars, not cents)
-        const PRODUCT_SUBTOTAL_AUD = 10.00; 
-        
-        // UPDATED ENDPOINT PATH TO MATCH SERVER ROUTE
+        const PRODUCT_SUBTOTAL_AUD = 10.00; // Product price in AUD (Dollars)
         window.serverUrl = 'http://localhost:3000/api/create-payment-intent';
         
         // Firebase Setup
@@ -144,115 +203,190 @@
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         let db, auth, userId;
+        let cardElement = null; // Stripe Card Element Instance
         const authStatusElement = document.getElementById('auth-status');
-
-        // This path acts as the centralized "orders" table, accessible by "admin.html"
         const publicOrdersPath = `/artifacts/${appId}/public/data/orders`;
 
-        // --- Core Functions ---
+        // Mock Available Slots (for dynamic generation)
+        const MOCK_SLOTS = {
+            'Any Day': ["8:00 AM - 10:00 AM", "10:00 AM - 12:00 PM", "1:00 PM - 3:00 PM", "3:00 PM - 5:00 PM"],
+            'Saturday': ["9:00 AM - 1:00 PM", "1:00 PM - 5:00 PM"],
+            'Sunday': ["Unavailable (Closed)"]
+        };
 
-        /**
-         * Simulates the trolley data structure expected by the Node.js server.
-         * Note: Prices here are in dollars (AUD), as the server expects.
-         * @returns {Array} A mock trolley array.
-         */
-        function getTrolleyData() {
-            // Your server side code expects 'price' to be the unit price in AUD.
-            return [
-                { name: "Premium Widget", price: PRODUCT_SUBTOTAL_AUD, quantity: 1 }
-            ];
+
+        // --- Slot Picker Logic ---
+        const dateInput = document.getElementById('delivery-date');
+        const slotContainer = document.getElementById('time-slot-container');
+        const selectedDayDisplay = document.getElementById('selected-day-display');
+        const deliverySlotInput = document.getElementById('deliverySlot');
+        const slotPlaceholder = document.getElementById('slot-placeholder');
+
+        function formatDate(date) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('en-AU', options);
         }
 
         /**
-         * Collects customer data from the form, aligned with the server's expected `customer` object structure.
+         * Generates the time slot radio buttons based on the selected date.
          */
+        function updateTimeSlots() {
+            const selectedDateStr = dateInput.value;
+            slotContainer.innerHTML = '';
+            deliverySlotInput.value = ''; // Reset slot value
+            
+            if (!selectedDateStr) {
+                selectedDayDisplay.textContent = 'Select a Date';
+                slotContainer.innerHTML = `<p id="slot-placeholder" class="text-gray-500 col-span-full">Please select a delivery date first.</p>`;
+                checkFormValidity();
+                return;
+            }
+
+            const selectedDate = new Date(selectedDateStr + 'T00:00:00'); // Use 'T00:00:00' to avoid timezone issues
+            const dayOfWeek = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+            selectedDayDisplay.textContent = `${dayOfWeek}, ${selectedDateStr}`;
+
+            let availableSlots = MOCK_SLOTS[dayOfWeek] || MOCK_SLOTS['Any Day'];
+            
+            if (availableSlots[0] === "Unavailable (Closed)") {
+                 slotContainer.innerHTML = `<p class="text-red-600 font-semibold col-span-full">${dayOfWeek} is unavailable for delivery.</p>`;
+                 checkFormValidity();
+                 return;
+            }
+
+            // Generate radio buttons
+            availableSlots.forEach((slot, index) => {
+                const fullValue = `${selectedDateStr}|${slot}`; // Format: 2025-12-01|8:00 AM - 10:00 AM
+                
+                slotContainer.innerHTML += `
+                    <div>
+                        <input type="radio" id="slot-${index}" name="time-slot" value="${fullValue}" class="hidden time-slot-radio" required>
+                        <label for="slot-${index}" class="block cursor-pointer p-3 text-center border-2 border-indigo-300 rounded-lg text-sm font-medium hover:bg-indigo-100 transition duration-150 ease-in-out">
+                            ${slot}
+                        </label>
+                    </div>
+                `;
+            });
+            
+            // Add listener to update the hidden input and re-check form validity
+            slotContainer.querySelectorAll('input[name="time-slot"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    deliverySlotInput.value = e.target.value;
+                    checkFormValidity();
+                });
+            });
+            
+            // Check validity after slots are generated
+            checkFormValidity();
+        }
+
+        dateInput.addEventListener('change', updateTimeSlots);
+        dateInput.min = new Date().toISOString().split('T')[0]; // Prevent selecting past dates
+
+
+        // --- Core Functions ---
+
+        function getTrolleyData() {
+            return [
+                { name: "Premium Widget (Subtotal)", price: PRODUCT_SUBTOTAL_AUD, quantity: 1 }
+            ];
+        }
+
         function getCustomerData() {
              return {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
-                mobile: document.getElementById('phone').value, // Server expects 'mobile'
-                address: document.getElementById('address').value, // Server expects 'address' (line1)
-                suburb: document.getElementById('city').value, // Server expects 'suburb'
-                state: document.getElementById('state').value, // Server expects 'state'
-                postcode: document.getElementById('zip').value, // Server expects 'postcode'
-                deliverySlot: document.getElementById('deliverySlot').value // Server expects 'deliverySlot'
+                mobile: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                suburb: document.getElementById('suburb').value, // Renamed from city
+                state: document.getElementById('state').value,
+                postcode: document.getElementById('zip').value,
+                deliverySlot: document.getElementById('deliverySlot').value 
             };
         }
 
 
         /**
-         * Calculates the total, updates the global total variable, and refreshes the UI summary.
-         * NOTE: Delivery fee is only estimated here; the final amount is calculated by the server.
+         * Updates the UI summary with estimated delivery fee and total.
          */
         function updateOrderSummary(deliveryFeeAud) {
-            // This is just for display/estimation, the server holds the source of truth
             const totalDollars = (PRODUCT_SUBTOTAL_AUD + deliveryFeeAud).toFixed(2);
             const subtotalDollars = PRODUCT_SUBTOTAL_AUD.toFixed(2);
             
             // 1. Update Order Details List
             const summaryEl = document.getElementById('order-details');
             
-            let deliveryDisplay = 'Calculating...';
-            if (deliveryFeeAud > 0) {
-                deliveryDisplay = `$${deliveryFeeAud.toFixed(2)}`;
-            } else if (document.getElementById('zip').value.length === 4) {
-                // Use a standard estimate for the UI
-                deliveryDisplay = `$9.99 (Est.)`;
+            let deliveryDisplay = 'TBD';
+            if (document.getElementById('zip').value.length !== 4) {
+                 deliveryDisplay = '---';
+            } else if (deliveryFeeAud === -1) {
+                deliveryDisplay = 'Unavailable';
+            } else {
+                 deliveryDisplay = `$${deliveryFeeAud.toFixed(2)}`;
             }
-
+            
             summaryEl.innerHTML = `
-                <div class="flex justify-between">
+                <div class="flex justify-between font-semibold">
                     <span>Product Subtotal</span>
                     <span>$${subtotalDollars}</span>
-                </div>
-                 <div class="flex justify-between text-yellow-700">
-                    <span>Delivery Charge (Server Estimate)</span>
-                    <span>${deliveryDisplay}</span>
                 </div>`;
             
-            // 2. Update Total and Button Text (Use the server's last known total if available, otherwise just subtotal)
+            document.getElementById('delivery-fee-display').textContent = deliveryDisplay;
+            
+            // 2. Update Total and Button Text (Use the estimated total)
             document.getElementById('final-total-display').textContent = `$${totalDollars} AUD`;
             
-            const buttonTextEl = document.getElementById('button-text');
-            if (buttonTextEl) {
-                buttonTextEl.textContent = `Pay $${totalDollars}`;
-            }
+            document.getElementById('button-text-desktop').textContent = `Pay $${totalDollars}`;
+            document.getElementById('button-text-mobile').textContent = `Pay $${totalDollars}`;
         }
 
         /**
-         * Handles the dynamic calculation of delivery charge based on Australian postcode.
+         * Simulates delivery calculation for UI estimation and checks zip validity.
          */
         function calculateDeliveryEstimate() {
             const zipInput = document.getElementById('zip');
-            const submitButton = document.getElementById('submit-button');
+            const infoEl = document.getElementById('delivery-info');
             const zip = zipInput.value.trim();
             let deliveryFeeAud = 0; // Default estimate
-            let isValidZip = false;
+            let postcodeMessage = 'Enter a valid 4-digit Australian Postcode.';
             
             if (zip.length === 4 && /^\d{4}$/.test(zip)) {
-                isValidZip = true;
                 // Simple client-side estimation based on your old logic
                 if (zip.startsWith('4')) {
                     deliveryFeeAud = 9.99; 
+                    postcodeMessage = 'QLD shipping estimate: $9.99.';
                 } else if (['2', '3', '5', '6', '7', '8'].includes(zip.charAt(0))) {
                     deliveryFeeAud = 15.00; 
+                    postcodeMessage = 'Interstate shipping estimate: $15.00.';
                 } else {
                     deliveryFeeAud = 20.00; 
+                    postcodeMessage = 'Remote/Other shipping estimate: $20.00.';
                 }
-                
             } else {
                 deliveryFeeAud = 0;
             }
             
+            infoEl.textContent = postcodeMessage;
             updateOrderSummary(deliveryFeeAud);
-            
-            const cardElement = document.getElementById('card-element');
-            if (cardElement && cardElement.children.length > 0) {
-                // Ensure form can only be submitted if zip is valid
-                submitButton.disabled = !isValidZip;
-            }
+            checkFormValidity();
         }
+
+        document.getElementById('zip').addEventListener('input', calculateDeliveryEstimate);
         
+        /**
+         * Checks if the entire form is ready for submission (valid zip, complete card, selected slot).
+         */
+        function checkFormValidity() {
+            const isValidZip = document.getElementById('zip').value.trim().length === 4;
+            const isCardComplete = cardElement && cardElement._complete;
+            const isSlotSelected = deliverySlotInput.value.length > 0;
+            const isFormValid = isValidZip && isCardComplete && isSlotSelected;
+            
+            document.getElementById('submit-button-desktop').disabled = !isFormValid;
+            document.getElementById('submit-button-mobile').disabled = !isFormValid;
+        }
+
+
         // 1. Initialize Firebase and Authenticate
         async function initializeFirebase() {
             try {
@@ -260,7 +394,7 @@
                 console.log("Attempting Firebase initialization...");
 
                 if (!firebaseConfig || !firebaseConfig.apiKey) {
-                    const errorMsg = "Firebase configuration is missing or invalid.";
+                    const errorMsg = "Firebase configuration is missing or invalid. Check the apiKey field.";
                     console.error("Configuration Error:", errorMsg, { config: firebaseConfig });
                     throw new Error(errorMsg);
                 }
@@ -273,12 +407,11 @@
                     if (user) {
                         userId = user.uid;
                         authStatusElement.textContent = `User ID: ${userId.substring(0, 8)}... (Authenticated)`;
-                        authStatusElement.className = 'text-center text-sm p-2 rounded-lg bg-green-100 text-green-700';
+                        authStatusElement.className = 'text-center text-sm p-3 rounded-lg bg-green-100 text-green-700';
                         
-                        // Initial calculation and listeners setup
+                        // Initial setup
                         calculateDeliveryEstimate(); 
-                        document.getElementById('zip').addEventListener('input', calculateDeliveryEstimate);
-
+                        updateTimeSlots(); // Initialize slot picker
                         initializeStripe(); // Initialize Stripe only after Firebase is ready
                         
                     } else {
@@ -291,8 +424,14 @@
                 });
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
-                authStatusElement.textContent = `Error: Cannot connect to database.`;
-                authStatusElement.className = 'text-center text-sm p-2 rounded-lg bg-red-100 text-red-700';
+                
+                // Enhanced message to hint at configuration issue
+                const displayMsg = error.message.includes("Configuration Error") 
+                    ? `Config Error: Missing API Key. Ensure Firebase config is supplied.` 
+                    : `Error: Cannot connect to database. (Details: ${error.message})`;
+
+                authStatusElement.textContent = displayMsg;
+                authStatusElement.className = 'text-center text-sm p-3 rounded-lg bg-red-100 text-red-700';
             }
         }
 
@@ -302,19 +441,16 @@
             
             const stripe = Stripe(stripePublishableKey);
             const elements = stripe.elements();
-            const card = elements.create('card');
-            card.mount('#card-element');
+            
+            // Initialize card element and store it globally
+            cardElement = elements.create('card');
+            cardElement.mount('#card-element');
 
             const form = document.getElementById('payment-form');
-            const submitButton = document.getElementById('submit-button');
             
-            // Button is disabled initially (waiting for card details AND valid zip)
-            submitButton.disabled = true; 
-
-            card.on('change', function(event) {
-                const isValidZip = document.getElementById('zip').value.trim().length === 4;
-                // Only enable submit if card is complete AND zip is valid
-                submitButton.disabled = !event.complete || !isValidZip; 
+            cardElement.on('change', function(event) {
+                // Check all validity conditions
+                checkFormValidity();
                 
                 if (event.error) {
                     displayMessage(event.error.message, true);
@@ -323,7 +459,7 @@
                 }
             });
 
-            form.addEventListener('submit', (e) => handlePayment(e, stripe, card));
+            form.addEventListener('submit', (e) => handlePayment(e, stripe, cardElement));
         }
         
         // 3. Payment Handling
@@ -332,8 +468,11 @@
             if (!userId) return displayMessage("Authentication not complete. Please wait.", true);
             
             const customer = getCustomerData();
-            if (customer.postcode.length !== 4) {
+            if (!customer.postcode || customer.postcode.length !== 4) {
                  return displayMessage("Please enter a valid 4-digit Australian Postcode.", true);
+            }
+            if (!customer.deliverySlot) {
+                 return displayMessage("Please select a delivery date and time slot.", true);
             }
             
             showProcessing(true);
@@ -342,16 +481,14 @@
             let grandTotalAud = 0;
 
             try {
-                // A. Prepare Data for Server
                 const trolley = getTrolleyData();
                 
-                // B. Create the Order in Firestore (Status: PENDING)
-                // NOTE: We only have estimated prices here. The definitive price is returned by the server.
+                // A. Create the Order in Firestore (Status: PENDING)
                 const newOrder = {
                     customerId: userId,
                     customerName: customer.name,
                     customerEmail: customer.email,
-                    shippingAddress: customer, // Save the full customer object
+                    shippingAddress: customer,
                     items: trolley, 
                     amountEstimate: PRODUCT_SUBTOTAL_AUD, 
                     status: 'PENDING',
@@ -364,21 +501,19 @@
 
                 displayMessage(`Order created in Firestore: ${orderId}. Requesting final total and payment intent...`, false, 'bg-blue-100 text-blue-700');
                 
-                // C. Fetch the Client Secret and definitive Total from Node.js Server
-                // CRITICAL FIX: Sending the required {trolley, customer} payload
+                // B. Fetch the Client Secret and definitive Total from Node.js Server
                 const response = await fetch(window.serverUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         trolley: trolley, 
-                        customer: customer // Send all customer details
+                        customer: customer
                     })
                 });
 
                 const data = await response.json();
 
                 if (data.error) {
-                     // If server returns error (e.g., postcode out of zone), update Firestore order to FAILED
                     await updateDoc(doc(db, publicOrdersPath, orderId), {
                         status: 'FAILED_SERVER_REJECT',
                         serverError: data.error,
@@ -388,19 +523,18 @@
                 }
 
                 const clientSecret = data.clientSecret;
-                // Use the grandTotal returned by the server (security source of truth)
-                grandTotalAud = data.grandTotal; 
+                grandTotalAud = data.grandTotal; // Server's source of truth
                 const amountInCents = Math.round(grandTotalAud * 100);
                 
-                // Update the Firestore order with the final price and PI details before confirmation
+                // Update Firestore order with final price and PI details
                  await updateDoc(doc(db, publicOrdersPath, orderId), {
                         amountFinal: amountInCents,
-                        orderNumber: data.orderNumber, // Use the generated order number from server
-                        stripePaymentIntentId: clientSecret.split('_secret')[0], // Extract PI ID from secret
+                        orderNumber: data.orderNumber, 
+                        stripePaymentIntentId: clientSecret.split('_secret')[0],
                         lastUpdated: new Date()
                     });
                 
-                // D. Confirm Payment with Stripe
+                // C. Confirm Payment with Stripe
                 const result = await stripe.confirmCardPayment(clientSecret, {
                     payment_method: {
                         card: card,
@@ -412,25 +546,13 @@
                 });
 
                 if (result.error) {
-                    // Payment failed, update status to FAILED
-                    await updateDoc(doc(db, publicOrdersPath, orderId), {
-                        status: 'FAILED',
-                        lastUpdated: new Date(),
-                        paymentError: result.error.message
-                    });
+                    await updateDoc(doc(db, publicOrdersPath, orderId), { status: 'FAILED', lastUpdated: new Date(), paymentError: result.error.message });
                     displayMessage(`Payment Failed: ${result.error.message}. Status set to FAILED in Firestore.`, true);
                 } else if (result.paymentIntent.status === 'succeeded') {
-                    // Payment succeeded, update status to PAID
-                    await updateDoc(doc(db, publicOrdersPath, orderId), {
-                        status: 'PAID',
-                        lastUpdated: new Date()
-                    });
+                    await updateDoc(doc(db, publicOrdersPath, orderId), { status: 'PAID', lastUpdated: new Date() });
                     
-                    // Successful payment: Redirect to success.html with order ID
-                    window.location.href = `success.html?orderId=${orderId}`; 
-
+                    window.location.href = `success.html?orderId=${orderId}&orderNumber=${data.orderNumber}`; 
                 } else {
-                    // Handle other statuses (e.g., requires_action)
                     displayMessage(`Payment status: ${result.paymentIntent.status}. Please check Stripe dashboard.`, true);
                 }
 
@@ -438,27 +560,36 @@
                 console.error('[Checkout Error]', error);
                 displayMessage(`System Error: ${error.message}. Ensure 'server.js' is running.`, true);
             } finally {
-                // Update UI display using the server-calculated total before hiding spinner
-                const totalDollarsDisplay = grandTotalAud > 0 ? grandTotalAud.toFixed(2) : PRODUCT_SUBTOTAL_AUD.toFixed(2);
-                document.getElementById('final-total-display').textContent = `$${totalDollarsDisplay} AUD`;
+                // Final UI update using server-calculated total
+                const finalDisplay = grandTotalAud > 0 ? grandTotalAud.toFixed(2) : document.getElementById('final-total-display').textContent.replace('$', '').replace(' AUD', '');
+                document.getElementById('final-total-display').textContent = `$${finalDisplay} AUD`;
                 showProcessing(false);
             }
         }
         
         // --- UI Helpers ---
         function showProcessing(isProcessing) {
-            const submitButton = document.getElementById('submit-button');
-            const buttonText = document.getElementById('button-text');
-            const spinner = document.getElementById('spinner');
-            submitButton.disabled = isProcessing;
-            spinner.classList.toggle('hidden', !isProcessing);
+            const buttons = [
+                document.getElementById('submit-button-desktop'), 
+                document.getElementById('submit-button-mobile')
+            ];
+            const spinners = [
+                document.getElementById('spinner-desktop'), 
+                document.getElementById('spinner-mobile')
+            ];
+            const buttonTexts = [
+                document.getElementById('button-text-desktop'),
+                document.getElementById('button-text-mobile')
+            ];
+
+            buttons.forEach(btn => btn.disabled = isProcessing);
+            spinners.forEach(spinner => spinner.classList.toggle('hidden', !isProcessing));
             
             if (!isProcessing) {
-                // Use the displayed total for button text
                 const totalDollars = document.getElementById('final-total-display').textContent.replace('$', '').replace(' AUD', '');
-                buttonText.textContent = `Pay ${totalDollars}`;
+                buttonTexts.forEach(txt => txt.textContent = `Pay ${totalDollars}`);
             } else {
-                buttonText.textContent = 'Processing...';
+                buttonTexts.forEach(txt => txt.textContent = 'Processing...');
             }
         }
 
