@@ -1,515 +1,344 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>GroceryGo | Checkout</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://js.stripe.com/v3/"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Custom styles to integrate with Tailwind and Stripe */
-        :root {
-            --primary: #10B981; /* Tailwind Green 500 */
-            --secondary: #F59E0B; /* Tailwind Amber 500 */
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #F3F4F6; /* Gray 100 */
-        }
-        /* Style for Stripe Element container to prevent layout shift */
-        #payment-element-container { 
-            min-height: 100px; 
-            transition: all 0.3s ease;
-        }
-        /* Custom styling for the Stripe component area */
-        #payment-element > div {
-            padding: 12px 16px;
-            border-radius: 0.5rem;
-            border: 1px solid #D1D5DB;
-            background-color: #fff;
-        }
-        /* Custom card styling for better shadow and border */
-        .custom-card {
-            background-color: white;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-        }
-        .error-message {
-            background-color: #FEE2E2; /* Red 100 */
-            color: #DC2626; /* Red 600 */
-        }
-        .service-ok {
-            background-color: #D1FAE5; /* Green 100 */
-            color: #059669; /* Green 600 */
-        }
-        .service-warn {
-            background-color: #FFFBEB; /* Yellow 100 */
-            color: #D97706; /* Yellow 600 */
-        }
-        /* Sticky element for desktop sidebar */
-        @media (min-width: 1024px) {
-            .summary-sticky {
-                position: sticky;
-                top: 2rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Checkout | GroceryGo</title>
+
+<script src="https://js.stripe.com/v3/"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #fafafa;
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        padding: 15px;
+        background: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .container {
+        padding: 20px;
+        max-width: 600px;
+        margin: auto;
+    }
+    .card {
+        background: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .flex {
+        display: flex;
+        gap: 10px;
+    }
+    .input {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        margin-top: 6px;
+    }
+    button {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        background: #2a7aee;
+        color: white;
+        font-size: 16px;
+        border-radius: 10px;
+        margin-top: 15px;
+    }
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+    }
+    #card-element {
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        margin-top: 8px;
+    }
+    #confirmationBox {
+        margin-top: 20px;
+        padding: 20px;
+        background: #e8ffe9;
+        border-radius: 10px;
+        display: none;
+        text-align: center;
+    }
+    .back-link {
+        display: inline-block;
+        margin-top: 10px;
+        text-align: center;
+        width: 100%;
+        color: #2a7aee;
+        text-decoration: underline;
+    }
+</style>
 </head>
-<body class="min-h-screen">
+<body>
 
-<div class="lg:max-w-7xl mx-auto px-4 py-8">
-    
-    <a href="./trolley.html" class="inline-flex items-center text-gray-600 hover:text-green-600 font-semibold mb-6 transition">
-        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-        Back to Trolley
-    </a>
-    <h1 class="text-3xl font-bold text-gray-800 mb-8">🛒 Secure Checkout</h1>
+<header>
+    <h3>Checkout</h3>
+    <a href="trolley.html" class="back-link">Back to Trolley</a>
+</header>
 
-    <!-- MAIN GRID CONTAINER -->
-    <div class="lg:grid lg:grid-cols-3 lg:gap-8">
-        
-        <!-- LEFT COLUMN: CUSTOMER DETAILS AND PAYMENT (2/3 width on desktop) -->
-        <div class="lg:col-span-2 space-y-6">
+<div class="container">
 
-            <div id="statusMessage" class="error-message p-3 rounded-lg font-medium hidden"></div>
+    <!-- CUSTOMER DETAILS -->
+    <div class="card">
+        <h3>Your Details</h3>
+        <input id="name" class="input" placeholder="Full Name" />
+        <input id="email" class="input" placeholder="Email" />
+        <input id="phone" class="input" placeholder="Phone" />
+        <input id="address" class="input" placeholder="Street Address" />
+        <input id="suburb" class="input" placeholder="Suburb" />
+        <input id="postcode" class="input" placeholder="Postcode" />
+    </div>
 
-            <!-- Customer Details -->
-            <div class="custom-card">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 border-gray-100">1. Contact & Customer Details</h2>
-                <div class="space-y-4">
-                    <div class="form-group">
-                        <label for="customerName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input id="customerName" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="John Doe" value="Test Customer" required>
-                    </div>
-                    <div class="flex flex-col md:flex-row gap-4">
-                        <div class="form-group flex-1">
-                            <label for="customerEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input id="customerEmail" type="email" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="john@example.com" value="test@example.com" required>
-                        </div>
-                        <div class="form-group flex-1">
-                            <label for="customerMobile" class="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
-                            <input id="customerMobile" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="0412345678" value="0412345678" required>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- DELIVERY SLOT -->
+    <div class="card">
+        <h3>Delivery Time</h3>
+        <select id="deliverySlot" class="input">
+            <option value="">Select delivery slot</option>
+        </select>
+    </div>
 
-            <!-- Delivery Address -->
-            <div class="custom-card">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 border-gray-100">2. Delivery Address & Slot</h2>
-                <div class="space-y-4">
-                    <div class="form-group">
-                        <label for="customerAddress" class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
-                        <input id="customerAddress" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="123 Queen St" value="123 Queen St" required>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="form-group">
-                            <label for="customerSuburb" class="block text-sm font-medium text-gray-700 mb-1">Suburb</label>
-                            <input id="customerSuburb" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="Brisbane" value="Brisbane" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="customerState" class="block text-sm font-medium text-gray-700 mb-1">State</label>
-                            <select id="customerState" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" required>
-                                <option value="QLD" selected>QLD</option>
-                                <option value="NSW">NSW</option>
-                                <option value="VIC">VIC</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerPostcode" class="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
-                        <input id="customerPostcode" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="4000" value="4000" required>
-                        <div id="serviceAreaMessage" class="p-2 rounded-lg mt-2 text-sm font-medium"></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="deliverySlot" class="block text-sm font-medium text-gray-700 mb-1">Delivery Time Slot</label>
-                        <select id="deliverySlot" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" required></select>
-                    </div>
-                </div>
-            </div>
+    <!-- ORDER SUMMARY -->
+    <div class="card">
+        <h3>Order Summary</h3>
 
-            <!-- Payment -->
-            <div class="custom-card">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 border-gray-100">3. Payment</h2>
-                
-                <button id="getPaymentOptions" class="w-full p-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
-                    Proceed to Payment
-                </button>
-                
-                <div id="payment-element-container" class="mt-4" style="display:none;">
-                    <!-- Stripe Payment Element will mount here -->
-                    <div id="payment-element"></div>
-                </div>
+        <div id="summaryItems"></div>
 
-                <button id="placeOrder" class="w-full p-3 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition duration-150 ease-in-out mt-4 disabled:opacity-50 disabled:cursor-not-allowed" style="display:none;">
-                    Place Order & Pay
-                </button>
-            </div>
-
-            <!-- OTP Verification -->
-            <div class="custom-card border-2 border-dashed border-red-300">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">OTP Verification (Testing Only)</h2>
-                <p class="text-sm text-gray-500 mb-3">
-                    This step simulates the final server-side verification before confirming payment.
-                </p>
-                <button id="generateOTP" class="w-full p-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition duration-150 ease-in-out mb-3">
-                    Generate OTP
-                </button>
-                <div id="otpDisplay" class="text-red-600 font-bold mb-3 text-center"></div>
-                <div class="form-group">
-                    <label for="otpInput" class="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
-                    <input id="otpInput" class="w-full p-3 border border-gray-300 rounded-lg focus:border-green-500 focus:ring focus:ring-green-200" placeholder="Enter 4-digit OTP">
-                </div>
-            </div>
-
+        <div class="summary-row">
+            <span>Subtotal</span>
+            <span id="subtotalDisplay">$0.00</span>
         </div>
 
-        <!-- RIGHT COLUMN: ORDER SUMMARY (1/3 width on desktop) -->
-        <div class="lg:col-span-1 mt-6 lg:mt-0">
-            <div class="custom-card summary-sticky">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Order Summary</h2>
-                <div id="priceSummary" class="space-y-2 text-gray-700">
-                    <div class="flex justify-between border-b border-gray-100 pb-2">
-                        <span>Subtotal:</span> 
-                        <span id="subtotalAmount" class="font-medium"></span>
-                    </div>
-                    <div class="flex justify-between border-b border-gray-100 pb-2">
-                        <span>Delivery Fee:</span> 
-                        <span id="deliveryFee" class="font-medium"></span>
-                    </div>
-                    <div class="flex justify-between pt-3 text-xl font-bold border-t border-gray-200">
-                        <span>Grand Total:</span> 
-                        <span id="grandTotalAmount" class="text-green-600"></span>
-                    </div>
-                </div>
-                <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200 text-sm text-blue-800">
-                    <p class="font-semibold mb-1">📢 How to Test Payment:</p>
-                    <p>Use a Stripe test card number (e.g., <code class="font-mono">4242 4242 4242 4242</code>, any future date, any CVC) in the card field.</p>
-                </div>
-            </div>
+        <div class="summary-row">
+            <span>Delivery Fee</span>
+            <span id="deliveryFeeDisplay">$0.00</span>
+        </div>
+
+        <hr>
+
+        <div class="summary-row" style="font-size:18px;font-weight:bold;">
+            <span>Total</span>
+            <span id="grandTotalDisplay">$0.00</span>
         </div>
     </div>
+
+    <!-- STRIPE -->
+    <div class="card">
+        <h3>Payment</h3>
+        <div id="card-element"></div>
+        <div id="card-errors" style="color:red;margin-top:10px;"></div>
+    </div>
+
+    <button id="payBtn">Pay Now</button>
+
+    <!-- CONFIRMATION -->
+    <div id="confirmationBox">
+        <h2>Order Confirmed!</h2>
+        <p id="orderMessage"></p>
+    </div>
+
 </div>
 
-<script type="module">
-// ----------------------
-// Stripe & DOM elements
-// ----------------------
-const STRIPE_PUBLISHABLE_KEY = "pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQOwg3DPKcOlg00VHp43m4l";
-const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+<script>
+/* -------------------------------
+   1. LOAD TROLLEY DATA
+---------------------------------*/
+const trolley = JSON.parse(localStorage.getItem("grocerygo_trolley")) || [];
+const subtotal = parseFloat(localStorage.getItem("grocerygo_subtotal") || "0");
 
-const nameEl = document.getElementById("customerName");
-const emailEl = document.getElementById("customerEmail");
-const mobileEl = document.getElementById("customerMobile");
-const addressEl = document.getElementById("customerAddress");
-const suburbEl = document.getElementById("customerSuburb");
-const stateEl = document.getElementById("customerState");
-const postcodeEl = document.getElementById("customerPostcode");
-const deliverySlotEl = document.getElementById("deliverySlot");
-const subtotalSpan = document.getElementById("subtotalAmount");
-const feeSpan = document.getElementById("deliveryFee");
-const totalSpan = document.getElementById("grandTotalAmount");
-const getPaymentBtn = document.getElementById("getPaymentOptions");
-const placeOrderBtn = document.getElementById("placeOrder");
-const paymentContainer = document.getElementById("payment-element-container");
-const otpDisplay = document.getElementById("otpDisplay");
-const otpInput = document.getElementById("otpInput");
-const statusMessage = document.getElementById("statusMessage");
-const serviceAreaMessage = document.getElementById("serviceAreaMessage");
+/* Render summary items */
+function renderSummary() {
+    const box = document.getElementById("summaryItems");
+    box.innerHTML = "";
 
-let elements, clientSecret, currentOTP = null;
-window.orderNumber = null;
+    trolley.forEach(item => {
+        box.innerHTML += `
+            <div class="summary-row">
+                <span>${item.name} (${item.quantity}×)</span>
+                <span>$${(item.price * item.quantity).toFixed(2)}</span>
+            </div>
+        `;
+    });
 
-// ----------------------
-// Logistics Data & Rotation Logic
-// ----------------------
-const GROUP_A = [4300,4301,4303,4304,4305,4306,4307,4308,4311,4114,4118,4124,4125,4127,4128,4129,4131,4132,4133,4207,4280,4285,4290];
-const GROUP_B = [4169,4170,4171,4172,4173,4174,4178,4179,4157,4158,4159,4160,4161,4163,4164,4165];
-const GROUP_C = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4520];
-
-// The three delivery time windows
-const SLOTS = ["8:00-11:00 (Early)", "11:00-15:00 (Mid)", "15:00-18:00 (Late)"];
-
-const POSTCODE_DISTANCES = Object.fromEntries([...GROUP_A,...GROUP_B,...GROUP_C].map((p,i)=>{
-  if(GROUP_A.includes(p)) return [p,30+i%5];
-  if(GROUP_B.includes(p)) return [p,15+i%5];
-  if(GROUP_C.includes(p)) return [p,1+i%10];
-}));
-
-const DISTANCE_FEES = [{maxKm:10,fee:10},{maxKm:20,fee:15},{maxKm:30,fee:20},{maxKm:Infinity,fee:25}];
-
-function getPostcodeGroup(pc){ const p=Number(pc); if(GROUP_A.includes(p)) return'A'; if(GROUP_B.includes(p)) return'B'; if(GROUP_C.includes(p)) return'C'; return null; }
-function formatCurrency(amount){ return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(amount); }
-function displayError(msg){ statusMessage.innerText=msg; statusMessage.classList.remove('hidden'); }
-function clearError(){ statusMessage.classList.add('hidden'); statusMessage.innerText=''; }
-function calculateDeliveryFee(pc){ const d=POSTCODE_DISTANCES[Number(pc)]; if(d===undefined)return-1; for(const f of DISTANCE_FEES){ if(d<=f.maxKm) return f.fee; } return 25; }
-
-/**
- * Extracts the start hour (24h format) from a slot string.
- * e.g., "11:00-15:00 (Mid)" -> 11
- */
-function getSlotStartTimeHour(slotString) {
-    const timePart = slotString.split('-')[0]; 
-    return parseInt(timePart.split(':')[0], 10); 
+    document.getElementById("subtotalDisplay").textContent = `$${subtotal.toFixed(2)}`;
 }
 
-/**
- * Determines the single delivery slot for a postcode group on a specific day.
- * @param {string} pc - Postcode
- * @param {number} day - Day of the week (1=Mon, 6=Sat)
- * @returns {string | null} The single available slot string, or null.
- */
-function getAvailableSlotsByDay(pc, day) {
-    // 0 (Sunday) is not a scheduled delivery day.
-    if (day === 0) return null; 
+renderSummary();
 
-    const group = getPostcodeGroup(pc);
-    if (!group) return null;
-    
-    // Day 1=Mon, 2=Tue, ..., 6=Sat
-    // The rotation is based on (Day - 1) % 3 to cycle through slots
-    const rotationBase = (day - 1) % 3; 
-    
-    let slotIndex;
+/* -------------------------------
+   2. APPROVED POSTCODES GROUPING
+---------------------------------*/
 
-    // Systematic distribution for load balancing:
-    if (group === 'A') {
-        slotIndex = rotationBase;
-    } else if (group === 'B') {
-        slotIndex = (rotationBase + 1) % 3;
-    } else if (group === 'C') {
-        slotIndex = (rotationBase + 2) % 3;
-    } else {
-        return null; 
+// Your approved list from memory
+const approvedPostcodes = [
+    4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,
+    4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,
+    4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,
+    4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,
+    4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,
+    4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4169,4170,4171,
+    4172,4173,4174,4178,4179,4183,4184,4205,4207,4280,4285,4300,4301,4303,4304,
+    4305,4306,4307,4308,4311,4340,4346,4500,4501,4502,4503,4504,4505,4506,4507,
+    4508,4509,4510,4511,4512,4513,4514,4515,4516,4517,4518,4519,4520,4521
+];
+
+/* Postcode group logic */
+function getGroup(postcode) {
+    postcode = Number(postcode);
+
+    const groupA = [4300,4301,4303,4304,4305,4306,4307,4308,4311,4340,4346,4114,4117,4118,4124,4125,4127];
+    const groupB = [4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165];
+    const groupC = approvedPostcodes.filter(p => !groupA.includes(p) && !groupB.includes(p));
+
+    if (groupA.includes(postcode)) return "A";
+    if (groupB.includes(postcode)) return "B";
+    if (groupC.includes(postcode)) return "C";
+    return null;
+}
+
+/* -------------------------------
+   3. DELIVERY FEE BASED ON DISTANCE
+---------------------------------*/
+function getDeliveryFee(pc) {
+    pc = Number(pc);
+
+    const km0_10 = [4000,4005,4006,4007,4008];
+    const km10_20 = [4009,4010,4011,4012,4013];
+    const km20_30 = [4014,4017,4018,4029];
+    const km30_40 = [4030,4031,4032,4034];
+    const km40plus = approvedPostcodes.filter(p => ![...km0_10,...km10_20,...km20_30,...km30_40].includes(p));
+
+    if (km0_10.includes(pc)) return 10;
+    if (km10_20.includes(pc)) return 15;
+    if (km20_30.includes(pc)) return 20;
+    if (km30_40.includes(pc)) return 25;
+    return 25;
+}
+
+/* -------------------------------
+   4. DELIVERY SLOT ROTATION
+---------------------------------*/
+function loadSlots() {
+    const pc = document.getElementById("postcode").value;
+    const slotSel = document.getElementById("deliverySlot");
+
+    slotSel.innerHTML = `<option value="">Select delivery slot</option>`;
+
+    if (!approvedPostcodes.includes(Number(pc))) {
+        slotSel.innerHTML += `<option>Postcode not serviceable</option>`;
+        return;
     }
 
-    return SLOTS[slotIndex];
-}
+    const group = getGroup(pc);
+    const day = new Date().getDay(); // 1=Mon
 
-/**
- * Searches up to 6 days ahead for available slots, enforcing the 8-hour lead time.
- */
-function getNextAvailableSlots(pc) {
-    const slots = [];
-    const today = new Date();
-    // 8-hour lead time for preparation
-    const cutoffTime = new Date(today.getTime() + 8 * 60 * 60 * 1000); 
-    const MAX_DAYS_AHEAD = 6; 
-    const group = getPostcodeGroup(pc);
+    let slots = [];
 
-
-    // 1. Add the "Anytime" option for today, if applicable (8:00 AM - 6:00 PM)
-    const todayDayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
-    
-    // Check if today is a delivery day (Monday=1 to Saturday=6)
-    if (todayDayOfWeek >= 1 && todayDayOfWeek <= 6) {
-        // Calculate the end of the delivery window today (6:00 PM / 18:00)
-        const endOfTodayDelivery = new Date(today);
-        endOfTodayDelivery.setHours(18, 0, 0, 0);
-
-        // If current time + 8 hours is before 6 PM today, "Anytime" is still possible today.
-        if (cutoffTime.getTime() < endOfTodayDelivery.getTime()) {
-            const dateString = today.toLocaleDateString('en-AU', { month: 'numeric', day: 'numeric' });
-            const dayName = today.toLocaleDateString('en-AU', { weekday: 'long' });
-            
-            slots.push({
-                value: `${today.toISOString().split('T')[0]}|Anytime`,
-                text: `${dayName}, ${dateString} - Anytime (8:00 AM - 6:00 PM)`
-            });
-        }
+    if (group === "A") {
+        slots = ["Monday 8–11", "Wednesday 11–3", "Friday 3–6"];
+    }
+    if (group === "B") {
+        slots = ["Tuesday 8–11", "Thursday 11–3", "Saturday 3–6"];
+    }
+    if (group === "C") {
+        slots = ["Monday 11–3", "Wednesday 3–6", "Friday 8–11"];
     }
 
+    slots.forEach(s => {
+        slotSel.innerHTML += `<option value="${s}">${s}</option>`;
+    });
+}
 
-    // 2. Add next 6 days of rotating 3-hour slots, respecting the 8-hour lead time.
-    for (let i = 0; i <= MAX_DAYS_AHEAD; i++) {
-        const checkDate = new Date(today);
-        checkDate.setDate(today.getDate() + i);
-        
-        const dayOfWeek = checkDate.getDay(); // 0 (Sun) to 6 (Sat)
-        
-        // Skip Sunday
-        if (dayOfWeek === 0) continue;
+document.getElementById("postcode").addEventListener("input", () => {
+    loadSlots();
+    calculateTotals();
+});
 
-        const availableSlot = getAvailableSlotsByDay(pc, dayOfWeek);
-        
-        if (availableSlot) {
-            let isAvailable = true;
+/* -------------------------------
+   5. TOTALS
+---------------------------------*/
+function calculateTotals() {
+    const pc = document.getElementById("postcode").value;
+    const fee = getDeliveryFee(pc);
 
-            if (i === 0) {
-                // If checking TODAY, enforce 8-hour constraint for the specific slot
-                const slotStartHour = getSlotStartTimeHour(availableSlot);
-                
-                // Create a Date object for the start of the slot today
-                const slotStartDate = new Date(today);
-                // Set hours using local time components
-                slotStartDate.setHours(slotStartHour, 0, 0, 0); 
-                
-                // If the slot starts before the 8-hour cutoff, it's not available today.
-                if (slotStartDate.getTime() < cutoffTime.getTime()) {
-                    isAvailable = false;
-                }
-            }
-            
-            if (isAvailable) {
-                const dateString = checkDate.toLocaleDateString('en-AU', { month: 'numeric', day: 'numeric' });
-                const dayName = checkDate.toLocaleDateString('en-AU', { weekday: 'long' });
-                
-                // Format: "DayName, Date - SlotTime (Group)"
-                const formattedSlot = `${dayName}, ${dateString} - ${availableSlot}`;
-                
-                slots.push({
-                    // Store Date|Time for internal use
-                    value: `${checkDate.toISOString().split('T')[0]}|${availableSlot}`,
-                    text: formattedSlot
-                });
-            }
-        }
+    document.getElementById("deliveryFeeDisplay").textContent = `$${fee.toFixed(2)}`;
+    document.getElementById("grandTotalDisplay").textContent = `$${(subtotal + fee).toFixed(2)}`;
+}
+
+calculateTotals();
+
+/* -------------------------------
+   6. STRIPE SETUP
+---------------------------------*/
+const stripe = Stripe("YOUR_PUBLISHABLE_KEY_HERE"); 
+const elements = stripe.elements();
+
+const card = elements.create("card", { hidePostalCode: true });
+card.mount("#card-element");
+
+card.on("change", function(event) {
+    const displayError = document.getElementById("card-errors");
+    displayError.textContent = event.error ? event.error.message : "";
+});
+
+/* -------------------------------
+   7. PAY NOW
+---------------------------------*/
+document.getElementById("payBtn").onclick = async () => {
+
+    const customer = {
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        phone: document.getElementById("phone").value,
+        address: document.getElementById("address").value,
+        suburb: document.getElementById("suburb").value,
+        postcode: document.getElementById("postcode").value,
+        deliverySlot: document.getElementById("deliverySlot").value
+    };
+
+    const res = await fetch("/api/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trolley, customer })
+    });
+
+    const data = await res.json();
+
+    const { clientSecret, orderNumber } = data;
+
+    const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card: card }
+    });
+
+    if (result.error) {
+        alert(result.error.message);
+        return;
     }
-    return slots;
-}
-// --- END OF NEW LOGIC ---
 
-// ----------------------
-// Initialization
-// ----------------------
-const trolley=JSON.parse(localStorage.getItem("grocerygo_trolley")||"[]");
-// Use trolley data if available, otherwise use a default mock subtotal
-let subtotal=trolley.reduce((s,i)=>s+(i.price||0)*(i.quantity||1),0) || 120.50;
+    // PAYMENT SUCCESS
+    document.getElementById("confirmationBox").style.display = "block";
+    document.getElementById("orderMessage").textContent =
+        `Your order number is ${orderNumber}. A confirmation email has been sent.`;
 
-
-// ----------------------
-// UI Update & Logic
-// ----------------------
-function updateSummary(postcode){
-  const pc = postcode.trim();
-  const fee=calculateDeliveryFee(pc);
-  let total=subtotal+(fee>0?fee:0);
-  
-  serviceAreaMessage.classList.remove('service-ok', 'service-warn');
-  serviceAreaMessage.textContent = '';
-
-  if(fee===-1){ 
-    serviceAreaMessage.classList.add('service-warn'); 
-    serviceAreaMessage.textContent=`⚠️ Postcode ${pc} is outside our delivery range.`; 
-    feeSpan.innerText='N/A'; 
-    totalSpan.innerText='N/A'; 
-    getPaymentBtn.disabled=true;
-  }
-  else{ 
-    serviceAreaMessage.classList.add('service-ok'); 
-    serviceAreaMessage.textContent=`✅ Service available for Group ${getPostcodeGroup(pc)}. Distance: ${POSTCODE_DISTANCES[Number(pc)].toFixed(1)} km. Fee: ${formatCurrency(fee)}.`; 
-    feeSpan.innerText=formatCurrency(fee); 
-    totalSpan.innerText=formatCurrency(total); 
-  }
-
-  subtotalSpan.innerText=formatCurrency(subtotal);
-
-  let availableSlots=getNextAvailableSlots(pc);
-
-  deliverySlotEl.innerHTML='';
-  const defaultOption=document.createElement('option');
-  defaultOption.value=''; defaultOption.disabled=true; defaultOption.selected=true;
-  defaultOption.textContent=availableSlots.length>0?"Select an available slot":"No delivery slots available in the next 6 days";
-  deliverySlotEl.appendChild(defaultOption);
-  
-  availableSlots.forEach(s=>{ 
-      const o=document.createElement('option'); 
-      o.value=s.value; 
-      o.textContent=s.text; 
-      deliverySlotEl.appendChild(o); 
-  });
-  
-  deliverySlotEl.disabled=availableSlots.length===0;
-  
-  if (fee !== -1) {
-    getPaymentBtn.disabled = availableSlots.length === 0 || !deliverySlotEl.value;
-  }
-}
-
-// Initial setup and input listener
-postcodeEl.oninput=(e)=>updateSummary(e.target.value);
-deliverySlotEl.onchange=()=>{ 
-  const fee=calculateDeliveryFee(postcodeEl.value);
-  getPaymentBtn.disabled = fee === -1 || !deliverySlotEl.value;
-};
-updateSummary(postcodeEl.value);
-
-
-document.getElementById("generateOTP").onclick=()=>{ 
-    currentOTP=Math.floor(1000+Math.random()*9000); 
-    otpDisplay.innerText=`Generated OTP: ${currentOTP}`; 
-};
-
-// Payment Button (Proceed to Payment)
-getPaymentBtn.onclick=async(e)=>{ 
-  e.preventDefault(); clearError();
-  const customer={name:nameEl.value.trim(),email:emailEl.value.trim(),mobile:mobileEl.value.trim(),address:addressEl.value.trim(),suburb:suburbEl.value.trim(),state:stateEl.value,postcode:postcodeEl.value.trim(),deliverySlot:deliverySlotEl.value};
-  if(Object.values(customer).some(v=>!v)){ displayError("Please fill all customer fields and select a delivery slot."); return; }
-
-  getPaymentBtn.disabled=true; getPaymentBtn.innerText="Processing...";
-  try{
-    // Mock API call to get a clientSecret (must be real in production, but mocked here)
-    const mockResponse={ok:true,json:()=>Promise.resolve({clientSecret:"pi_fake_client_secret_xyz",orderNumber:Math.floor(100000+Math.random()*900000).toString()})};
-    const res=await mockResponse;
-    const data=await res.json();
-    
-    clientSecret=data.clientSecret; window.orderNumber=data.orderNumber;
-    
-    // Initialize Stripe Elements
-    elements=stripe.elements({clientSecret,appearance:{theme:'stripe', variables: { colorPrimary: '#10B981' }}});
-
-    elements.create("payment").mount("#payment-element");
-    paymentContainer.style.display='block'; 
-    placeOrderBtn.style.display='block'; 
-    getPaymentBtn.style.display='none';
-    
-    document.querySelectorAll('input, select').forEach(el=>el.disabled=true);
-  }catch(err){ 
-    displayError("Network error. Check server."); 
-    getPaymentBtn.innerText="Proceed to Payment"; 
-    getPaymentBtn.disabled=false; 
-  }
-};
-
-// Place Order Button
-placeOrderBtn.onclick=async(e)=>{
-  e.preventDefault(); clearError();
-  
-  // 1. OTP Verification (Local Test Requirement)
-  if(!currentOTP||Number(otpInput.value)!==currentOTP){ 
-    displayError("Invalid OTP. Generate and enter the correct OTP."); 
-    return; 
-  }
-  
-  placeOrderBtn.innerText="Processing Payment..."; 
-  placeOrderBtn.disabled=true;
-
-  // 2. Stripe Payment Confirmation (Real Flow)
-  try {
-      const { error } = await stripe.confirmPayment({
-          elements,
-          confirmParams: {
-              // This URL is where Stripe redirects the user after 3D Secure or other required actions.
-              return_url: `${window.location.origin}/success.html?order=${window.orderNumber}`,
-          },
-      });
-
-      if (error) {
-          // This will be displayed if the card fails or other Stripe validation issues occur
-          displayError(`Payment Failed: ${error.message}`);
-          placeOrderBtn.innerText="Place Order & Pay"; 
-          placeOrderBtn.disabled=false;
-      }
-      // If no error, Stripe handles the redirect via the return_url on success.
-      
-  } catch (err) {
-      displayError(`An unexpected error occurred: ${err.message}`);
-      placeOrderBtn.innerText="Place Order & Pay"; 
-      placeOrderBtn.disabled=false;
-  }
+    localStorage.removeItem("grocerygo_trolley");
+    localStorage.removeItem("grocerygo_subtotal");
 };
 </script>
 </body>
