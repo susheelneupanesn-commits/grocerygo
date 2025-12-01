@@ -1,87 +1,378 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF‑8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Checkout</title>
-  <script src="https://js.stripe.com/v3"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f3f4f6; }
-    .StripeElement { padding: 12px; border: 1px solid #ccc; border-radius: 6px; background: white; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GroceryGo — Secure Checkout</title>
+<script src="https://js.stripe.com/v3"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Custom styling */
+body { font-family: 'Inter', sans-serif; background:#f3f4f6; }
+.StripeElement { box-sizing:border-box; height:48px; padding:12px; border:1px solid #e5e7eb; border-radius:.5rem; background:#fff; transition: all 0.15s ease; }
+.StripeElement--focus { box-shadow:0 0 0 3px rgba(79,70,229,0.15); border-color:#4f46e5; }
+.summary-card { position: sticky; top: 1rem; }
+.time-slot-radio:checked + label { background:#4f46e5; color:#fff; border-color:#4f46e5; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+</style>
 </head>
-<body class="p-4">
-  <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
-    <h2 class="text-2xl mb-4">Checkout</h2>
-    <form id="payment-form">
-      <input id="name" type="text" placeholder="Full Name" required class="w-full mb-3 p-2 border" />
-      <input id="email" type="email" placeholder="Email" required class="w-full mb-3 p-2 border" />
-      <input id="phone" type="tel" placeholder="Mobile" required class="w-full mb-3 p-2 border" />
-      <input id="address" type="text" placeholder="Address" required class="w-full mb-3 p-2 border" />
-      <input id="suburb" type="text" placeholder="Suburb" required class="w-full mb-3 p-2 border" />
-      <input id="state" type="text" placeholder="State" required class="w-full mb-3 p-2 border" />
-      <input id="postcode" type="text" placeholder="Postcode" required class="w-full mb-3 p-2 border" />
-      <div id="card-element" class="StripeElement"></div>
-      <button id="pay" class="w-full mt-4 bg-indigo-600 text-white p-3 rounded">Pay</button>
-      <div id="message" class="mt-4 text-center"></div>
-    </form>
-  </div>
+<body class="min-h-screen p-4 lg:p-8">
+<div class="max-w-5xl mx-auto">
+  <h1 class="text-3xl lg:text-4xl font-extrabold mb-6 text-center text-gray-800">Secure Checkout</h1>
 
-  <script>
-    const stripe = Stripe("pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l"); // 
-    const elements = stripe.elements();
-    const card = elements.create("card");
-    card.mount("#card-element");
+  <form id="payment-form" class="lg:grid lg:grid-cols-3 lg:gap-12" novalidate>
+    <div class="lg:col-span-2 space-y-6">
+      
+      <section class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.727A8 8 0 016.343 5.273v11.454L4 18h16l-2.343-1.273z" /></svg> Shipping Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label><span class="text-sm font-medium">Full Name</span><input id="name" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required></label>
+          <label><span class="text-sm font-medium">Email</span><input id="email" type="email" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required></label>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          <label><span class="text-sm font-medium">Mobile Phone</span><input id="phone" type="tel" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required></label>
+          <label><span class="text-sm font-medium">Address Line 1</span><input id="address" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required></label>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+          <label><span class="text-sm font-medium">Suburb</span><input id="suburb" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required></label>
+          <label><span class="text-sm font-medium">State</span><input id="state" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" value="QLD" required></label>
+          <label><span class="text-sm font-medium">Postcode</span><input id="postcode" maxlength="4" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required></label>
+        </div>
+      </section>
 
-    document.getElementById("payment-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById("pay");
-      btn.disabled = true;
+      <section class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h.01M10 12h4m-4 4h4" /><path d="M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z" /></svg> Choose Delivery Slot</h2>
+        
+        <label class="block mb-4">
+          <span class="text-sm font-medium">Delivery Date</span>
+          <input id="delivery-date" type="date" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
+        </label>
+        
+        <div class="text-sm font-medium mb-3">Available Time Slots (<span id="selected-day-display" class="font-semibold text-indigo-600">Please Select a Date</span>)</div>
+        <div id="time-slot-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <p class="text-gray-500 col-span-full text-sm">Please select a delivery date first.</p>
+        </div>
+        <input id="deliverySlot" type="hidden" value="">
+      </section>
 
-      const customer = {
-        name: document.getElementById("name").value,
-        email: document.getElementById("email").value,
-        mobile: document.getElementById("phone").value,
-        address: document.getElementById("address").value,
-        suburb: document.getElementById("suburb").value,
-        state: document.getElementById("state").value,
-        postcode: document.getElementById("postcode").value
-      };
+      <section class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg> Payment Details</h2>
+        <label class="block text-sm font-medium mb-2">Card Details (Secured by Stripe)</label>
+        <div id="card-element" class="mt-2"></div>
+        <div id="message-box" class="hidden mt-4 p-3 rounded-lg text-sm" role="alert"><p id="message-text"></p></div>
+      </section>
 
-      const trolley = JSON.parse(localStorage.getItem("trolley") || "[]");
-      if (!trolley.length) {
-        document.getElementById("message").textContent = "Cart is empty.";
-        btn.disabled = false;
+      <div class="lg:hidden pb-8">
+        <button id="submit-button-mobile" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50" disabled>
+          <span id="button-text-mobile">Pay $0.00</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="lg:col-span-1 mt-8 lg:mt-0">
+      <div class="summary-card bg-indigo-50 p-6 rounded-xl shadow-xl border border-indigo-200">
+        <h2 class="text-2xl font-bold text-indigo-800 mb-4">Order Summary</h2>
+        <div id="order-details" class="mt-3 text-gray-700 space-y-2 border-b pb-3">
+          <div class="flex justify-between"><span>Items Subtotal</span><span id="subtotal-display" class="font-semibold">$0.00</span></div>
+        </div>
+        
+        <div class="pt-3 mt-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <span>Delivery Fee</span>
+            <span id="delivery-fee-display" class="font-semibold text-gray-700">$0.00</span>
+          </div>
+          <div class="flex justify-between items-center text-2xl font-extrabold text-indigo-800 border-t pt-3 mt-3">
+            <span>Grand Total</span>
+            <span id="final-total-display">$0.00 AUD</span>
+          </div>
+        </div>
+        
+        <p id="delivery-info" class="text-xs text-red-600 mt-4 text-center font-medium">Please enter a valid postcode and select a slot.</p>
+        
+        <button id="submit-button-desktop" class="hidden lg:block w-full py-3 mt-4 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50" disabled>
+          <span id="button-text-desktop">Pay $0.00</span>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+// --- CONFIGURATION ---
+const SUPABASE_URL = 'https://gikdqaxdqfmzdvolkxbn.supabase.co';
+// WARNING: This is a read-only key. For secure actions (like /api/create-payment-intent), 
+// the serverless function uses the Service Role Key from its environment variables.
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdpa2RxYXhkcWZtemR2b2xreGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyOTQwNDIsImV4cCI6MjA3Nzg3MDA0Mn0.pJ-9KfCxV7YT5loiURW14xRmf72s1EZRFRh4iKGnQis';
+const SERVER_CREATE_PI = '/api/create-payment-intent';
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l';
+
+let stripe = null;
+let cardElement = null;
+let supabaseClient = null;
+
+// --- DELIVERY ZONES & FEES (Must match your /api/create-payment-intent.js logic) ---
+const GROUP_A = [4300,4301,4303,4304,4305,4306,4307,4308,4311,4114,4118,4124,4125,4127,4128,4129,4131,4132,4133,4207,4280,4285,4290];
+const GROUP_B = [4169,4170,4171,4172,4173,4174,4178,4179,4157,4158,4159,4160,4161,4163,4164,4165];
+const GROUP_C = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4520];
+
+const POSTCODE_DISTANCES = {};
+GROUP_A.forEach((pc,i)=>POSTCODE_DISTANCES[pc]=30+(i%5));
+GROUP_B.forEach((pc,i)=>POSTCODE_DISTANCES[pc]=15+(i%5));
+GROUP_C.forEach((pc,i)=>POSTCODE_DISTANCES[pc]=1+(i%10));
+
+const DISTANCE_FEES = [ {maxKm:10,fee:10},{maxKm:20,fee:15},{maxKm:30,fee:20},{maxKm:Infinity,fee:25} ];
+
+// Returns fee (number) or -1 (unavailable)
+function getDeliveryFee(postcode){ 
+    const dist=POSTCODE_DISTANCES[Number(postcode)]; 
+    if(dist===undefined) return -1; 
+    for(const df of DISTANCE_FEES) if(dist<=df.maxKm) return df.fee; 
+    return 25; 
+}
+
+// --- DOM ELEMENTS ---
+const dateInput = document.getElementById('delivery-date');
+const postcodeInput = document.getElementById('postcode');
+const slotContainer = document.getElementById('time-slot-container');
+const deliverySlotInput = document.getElementById('deliverySlot');
+const desktopButton = document.getElementById('submit-button-desktop');
+const mobileButton = document.getElementById('submit-button-mobile');
+
+// --- UTILS ---
+function getTrolleyData() { 
+    // This function must retrieve the *actual* trolley from localStorage.
+    // For this demonstration, we use a placeholder or the stored data.
+    const trolley = JSON.parse(localStorage.getItem('trolley') || '[]');
+    // Ensure trolley items have 'price' and 'quantity'
+    if (trolley.length === 0) return [];
+    
+    // Example: calculate subtotal based on stored trolley
+    // If your /api/create-payment-intent.js re-validates the price, 
+    // this local calculation is only for display.
+    return trolley.map(item => ({
+        id: item.id,
+        price: item.price || 0, // IMPORTANT: Ensure these fields exist
+        quantity: item.quantity || 1,
+        // Include other data the server may need
+    }));
+}
+
+function calculateSubtotal(trolley) {
+    return trolley.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+}
+
+function showMessage(text, isError = false) {
+    const box = document.getElementById('message-box');
+    const textEl = document.getElementById('message-text');
+    box.classList.remove('hidden');
+    box.className = isError ? 'mt-4 p-3 rounded-lg text-sm bg-red-100 text-red-800' : 'mt-4 p-3 rounded-lg text-sm bg-green-100 text-green-800';
+    textEl.textContent = text;
+}
+
+// --- CORE LOGIC ---
+
+function updateTimeSlots() {
+    const dateStr = dateInput.value;
+    slotContainer.innerHTML = '';
+    deliverySlotInput.value = '';
+    document.getElementById('selected-day-display').textContent = dateStr || 'Select a Date';
+
+    if (!dateStr) { 
+        slotContainer.innerHTML = '<p class="text-gray-500 col-span-full text-sm">Please select a delivery date first.</p>'; 
+        checkFormValidity(); 
+        return; 
+    }
+
+    const d = new Date(dateStr + 'T00:00:00'); 
+    const weekday = d.getDay(); // 0 = Sunday, 1 = Monday
+
+    // Mock Delivery Slot Logic (Mon-Sat delivery only)
+    if (weekday === 0) {
+        slotContainer.innerHTML = '<p class="text-red-500 col-span-full font-medium">No deliveries on Sundays.</p>';
+        checkFormValidity();
         return;
-      }
+    }
 
-      try {
-        const resp = await fetch('/api/create-payment-intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trolley, customer })
-        });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || "Payment intent failed");
-
-        const { clientSecret, orderNumber } = data;
-        const result = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: { card, billing_details: { name: customer.name, email: customer.email } }
-        });
-
-        if (result.error) throw result.error;
-        if (result.paymentIntent && result.paymentIntent.status === "succeeded") {
-          document.getElementById("message").textContent = `Success! Order #${orderNumber}`;
-          localStorage.removeItem("trolley");
-        } else {
-          throw new Error("Payment not completed");
-        }
-      } catch (err) {
-        document.getElementById("message").textContent = err.message;
-        btn.disabled = false;
-      }
+    // Mock slots: 'Anytime' is a static option, others rotate
+    const zones = ['A', 'B', 'C'];
+    const times = ['8:00 AM - 11:00 AM', '11:00 AM - 3:00 PM', '3:00 PM - 6:00 PM']; 
+    
+    const MOCK_SLOTS = [{ zone: 'Anytime', timeslot: 'Anytime' }];
+    zones.forEach((zone, i) => { 
+        MOCK_SLOTS.push({ zone, timeslot: times[(weekday + i) % 3] }); 
     });
-  </script>
+
+    MOCK_SLOTS.forEach((s, i) => {
+        const val = `${s.zone}|${s.timeslot}`;
+        slotContainer.innerHTML += `
+            <div>
+                <input type="radio" id="slot-${i}" name="time-slot" value="${val}" class="hidden time-slot-radio"/>
+                <label for="slot-${i}" class="block cursor-pointer p-3 border rounded-lg text-sm text-center font-medium transition hover:bg-indigo-100">${s.zone}: ${s.timeslot}</label>
+            </div>
+        `;
+    });
+
+    slotContainer.querySelectorAll('input[name="time-slot"]').forEach(r => r.addEventListener('change', e => { 
+        deliverySlotInput.value = e.target.value; 
+        checkFormValidity(); 
+    }));
+    checkFormValidity();
+}
+
+function updateOrderSummary(deliveryFee = -1) {
+    const trolley = getTrolleyData();
+    const subtotal = calculateSubtotal(trolley);
+    
+    document.getElementById('subtotal-display').textContent = `$${subtotal.toFixed(2)}`;
+
+    let finalTotal = subtotal;
+    let feeDisplay = '$0.00';
+    let deliveryMessage = 'Enter a valid postcode and select a slot.';
+    let isDeliveryAvailable = deliveryFee !== -1;
+
+    if (isDeliveryAvailable) {
+        finalTotal += deliveryFee;
+        feeDisplay = `$${deliveryFee.toFixed(2)}`;
+        deliveryMessage = `Delivery available! Fee: $${deliveryFee.toFixed(2)}`;
+        document.getElementById('delivery-info').classList.remove('text-red-600');
+        document.getElementById('delivery-info').classList.add('text-green-600');
+    } else {
+        document.getElementById('delivery-info').classList.remove('text-green-600');
+        document.getElementById('delivery-info').classList.add('text-red-600');
+    }
+
+    document.getElementById('delivery-fee-display').textContent = feeDisplay;
+    const finalTotalFixed = finalTotal.toFixed(2);
+    document.getElementById('final-total-display').textContent = `$${finalTotalFixed} AUD`;
+    document.getElementById('button-text-desktop').textContent = isDeliveryAvailable ? `Pay $${finalTotalFixed}` : 'Unavailable';
+    document.getElementById('button-text-mobile').textContent = isDeliveryAvailable ? `Pay $${finalTotalFixed}` : 'Unavailable';
+    document.getElementById('delivery-info').textContent = deliveryMessage;
+
+    checkFormValidity();
+}
+
+function calculateDeliveryEstimate() {
+    const postcode = postcodeInput.value.trim();
+    if (/^\d{4}$/.test(postcode)) {
+        const fee = getDeliveryFee(postcode);
+        updateOrderSummary(fee);
+    } else {
+        updateOrderSummary(-1);
+    }
+}
+
+function checkFormValidity() {
+    const postcode = postcodeInput.value.trim();
+    const fee = getDeliveryFee(postcode);
+    
+    const postcodeOK = fee !== -1;
+    const cardOK = cardElement && cardElement._complete;
+    const slotOK = deliverySlotInput.value.length > 0;
+    
+    // Check if all customer detail fields are filled
+    const customerFields = ['name', 'email', 'phone', 'address', 'suburb', 'state'];
+    const fieldsOK = customerFields.every(id => document.getElementById(id).value.trim().length > 0) && postcodeOK;
+
+    const allOK = fieldsOK && cardOK && slotOK;
+    
+    desktopButton.disabled = !allOK;
+    mobileButton.disabled = !allOK;
+}
+
+function initializeStripe() {
+    stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+    const elements = stripe.elements();
+    
+    // Using the Card Element as per your script's confirmCardPayment method
+    cardElement = elements.create('card', {
+        style: { base: { fontSize: '16px', '::placeholder': { color: '#9ca3af' } } },
+        hidePostalCode: true // We collect postcode separately
+    });
+    cardElement.mount('#card-element');
+    
+    cardElement.on('change', e => { 
+        if (e.error) showMessage(e.error.message, true); 
+        else document.getElementById('message-box').classList.add('hidden'); 
+        checkFormValidity(); 
+    });
+    
+    document.getElementById('payment-form').addEventListener('submit', ev => handlePayment(ev));
+}
+
+async function handlePayment(e) {
+    e.preventDefault();
+    desktopButton.disabled = true;
+    mobileButton.disabled = true;
+    showMessage('Processing payment... Please wait.', false);
+
+    const customer = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        mobile: document.getElementById('phone').value,
+        address: document.getElementById('address').value,
+        suburb: document.getElementById('suburb').value,
+        state: document.getElementById('state').value,
+        postcode: document.getElementById('postcode').value,
+        deliverySlot: document.getElementById('deliverySlot').value,
+        deliveryDate: document.getElementById('delivery-date').value
+    };
+    
+    try {
+        const trolley = getTrolleyData();
+        if (trolley.length === 0) throw new Error("Trolley is empty. Please return to the store.");
+
+        // 1. Call Vercel API to create Payment Intent and log 'pending' order
+        const res = await fetch(SERVER_CREATE_PI, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trolley, customer })
+        });
+        const data = await res.json();
+        
+        if (data.error) { showMessage('Payment intent failed: ' + data.error, true); return; }
+
+        // 2. Confirm the payment with Stripe
+        const result = await stripe.confirmCardPayment(data.clientSecret, {
+            payment_method: { 
+                card: cardElement, 
+                billing_details: { name: customer.name, email: customer.email } 
+            }
+        });
+
+        if (result.error) { 
+            showMessage('Payment failed: ' + result.error.message, true); 
+        } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') { 
+            // 3. Success (Webhook will update Supabase status)
+            localStorage.removeItem('trolley'); // Client-side clear
+            window.location.href = `/success.html?order=${encodeURIComponent(data.orderNumber)}`; 
+        } else {
+            showMessage('Payment status: ' + (result.paymentIntent ? result.paymentIntent.status : 'unknown'), true);
+        }
+    } catch (err) { 
+        console.error("Checkout Error:", err); 
+        showMessage('An internal error occurred: ' + err.message, true);
+    } finally {
+        // Re-enable button on failure, but not on success (since we redirect)
+        checkFormValidity();
+    }
+}
+
+// --- INITIALIZATION ---
+window.onload = () => {
+    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    dateInput.min = new Date().toISOString().split('T')[0];
+
+    // Event Listeners
+    dateInput.addEventListener('change', updateTimeSlots);
+    postcodeInput.addEventListener('input', calculateDeliveryEstimate);
+    
+    // Initial calls
+    updateOrderSummary(getDeliveryFee(postcodeInput.value.trim()));
+    updateTimeSlots();
+    initializeStripe();
+};
+</script>
 </body>
 </html>
