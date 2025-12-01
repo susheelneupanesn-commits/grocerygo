@@ -1,58 +1,104 @@
-<script>
-        async function fetchAndRenderOrders() {
-            const tableBody = document.getElementById("ordersTable").querySelector("tbody");
-            tableBody.innerHTML = '<tr><td colspan="6">Loading orders...</td></tr>';
-            
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Orders</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .order-table th, .order-table td { padding: 12px; border: 1px solid #e5e7eb; text-align: left; }
+    </style>
+</head>
+<body class="p-8 bg-gray-100">
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow">
+        <h2 class="text-3xl font-bold mb-6">Recent Orders</h2>
+        
+        <p id="loadingMessage" class="text-blue-600">Loading orders...</p>
+        <p id="errorMessage" class="text-red-600 hidden">Error fetching orders.</p>
+
+        <table id="ordersTable" class="min-w-full order-table bg-white hidden">
+            <thead>
+                <tr class="bg-gray-200">
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody id="ordersBody">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchOrders);
+
+        async function fetchOrders() {
+            const loadingEl = document.getElementById('loadingMessage');
+            const errorEl = document.getElementById('errorMessage');
+            const tableEl = document.getElementById('ordersTable');
+            const bodyEl = document.getElementById('ordersBody');
+
+            loadingEl.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+            tableEl.classList.add('hidden');
+            bodyEl.innerHTML = '';
+
             try {
-                // 1. Fetch data from the secure API endpoint
-                const res = await fetch("/api/get-orders");
-                if (!res.ok) throw new Error("Failed to fetch orders from API.");
-                
-                const data = await res.json();
-                const orders = data.orders || [];
+                // Call Vercel Serverless Function to get orders
+                const response = await fetch('/api/get-orders');
+                const data = await response.json();
 
-                tableBody.innerHTML = ''; // Clear loading row
-
-                if (orders.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="6">No orders found.</td></tr>';
-                    return;
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to fetch data from API.');
                 }
 
-                // 2. Render orders in the table
-                orders.forEach(order => {
-                    const row = tableBody.insertRow();
-                    row.style.backgroundColor = order.status === 'Successful' ? '#d4edda' : (order.status === 'Failed' ? '#f8d7da' : '#fff3cd'); // Color coding
-                    
-                    row.insertCell().textContent = order.order_number;
-                    row.insertCell().textContent = order.status;
-                    
-                    // FIX 1: Use order.total_amount instead of order.grand_total
-                    row.insertCell().textContent = new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format(order.total_amount);
-                    
-                    row.insertCell().textContent = order.customer_name;
-                    
-                    // Format Date
-                    row.insertCell().textContent = new Date(order.created_at).toLocaleString();
-                    
-                    // FIX 2: Parse the JSON string for items
-                    const itemsCell = row.insertCell();
-                    try {
-                        const items = JSON.parse(order.items);
-                        // Display item list with quantity
-                        itemsCell.innerHTML = items.map(item => `${item.name} (x${item.quantity})`).join('<br>');
-                    } catch (e) {
-                        itemsCell.textContent = 'Data error';
-                    }
-                });
+                const orders = data.orders || [];
 
-            } catch (error) {
-                console.error("Error fetching admin data:", error);
-                tableBody.innerHTML = `<tr><td colspan="6" style="color:red;">Error loading data: ${error.message}</td></tr>`;
+                if (orders.length === 0) {
+                    bodyEl.innerHTML = '<tr><td colspan="6" class="text-center py-4">No orders found.</td></tr>';
+                } else {
+                    orders.forEach(order => {
+                        const row = document.createElement('tr');
+                        
+                        // Format the date
+                        const date = new Date(order.created_at).toLocaleDateString('en-AU', {
+                            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        });
+
+                        // Determine status color
+                        let statusColor = 'text-gray-700';
+                        if (order.status === 'Successful') statusColor = 'text-green-600 font-semibold';
+                        else if (order.status === 'Failed') statusColor = 'text-red-600 font-semibold';
+
+                        row.innerHTML = `
+                            <td>${order.order_number}</td>
+                            <td>${order.customer_name}<br><span class="text-sm text-gray-500">${order.email}</span></td>
+                            <td>$${order.total_amount ? order.total_amount.toFixed(2) : '0.00'}</td>
+                            <td class="${statusColor}">${order.status}</td>
+                            <td>${date}</td>
+                            <td><button onclick="showDetails(${order.id})" class="text-indigo-600 hover:underline">View</button></td>
+                        `;
+                        bodyEl.appendChild(row);
+                    });
+                }
+                
+                tableEl.classList.remove('hidden');
+
+            } catch (err) {
+                console.error("Admin Fetch Error:", err);
+                errorEl.textContent = `Error: ${err.message}`;
+                errorEl.classList.remove('hidden');
+            } finally {
+                loadingEl.classList.add('hidden');
             }
         }
-
-        document.getElementById("refreshOrders").onclick = fetchAndRenderOrders;
-
-        // Load orders on page load
-        fetchAndRenderOrders();
+        
+        function showDetails(orderId) {
+            alert(`Viewing details for order ID: ${orderId}. (Implementation required to fetch individual order details.)`);
+        }
     </script>
+</body>
+</html>
