@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>GroceryGo | Admin Dashboard</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Orders Dashboard</h1>
+        <p>This data is fetched securely from the server.</p>
+        <button id="refreshOrders">Refresh Orders</button>
+        <table id="ordersTable" border="1" style="width:100%; margin-top: 20px;">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Customer Name</th>
+                    <th>Date</th>
+                    <th>Items</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+    
+    <script>
+        async function fetchAndRenderOrders() {
+            const tableBody = document.getElementById("ordersTable").querySelector("tbody");
+            tableBody.innerHTML = '<tr><td colspan="6">Loading orders...</td></tr>';
+            
+            try {
+                // 1. Fetch data from the secure API endpoint
+                const res = await fetch("/api/get-orders");
+                if (!res.ok) throw new Error("Failed to fetch orders from API.");
+                
+                const data = await res.json();
+                const orders = data.orders || [];
+
+                tableBody.innerHTML = ''; // Clear loading row
+
+                if (orders.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6">No orders found.</td></tr>';
+                    return;
+                }
+
+                // 2. Render orders in the table
+                orders.forEach(order => {
+                    const row = tableBody.insertRow();
+                    row.style.backgroundColor = order.status === 'Successful' ? '#d4edda' : (order.status === 'Failed' ? '#f8d7da' : '#fff3cd'); // Color coding
+                    
+                    row.insertCell().textContent = order.order_number;
+                    row.insertCell().textContent = order.status;
+                    
+                    // FIX 1: Use order.total_amount instead of order.grand_total
+                    row.insertCell().textContent = new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format(order.total_amount);
+                    
+                    row.insertCell().textContent = order.customer_name;
+                    
+                    // Format Date
+                    row.insertCell().textContent = new Date(order.created_at).toLocaleString();
+                    
+                    // FIX 2: Parse the JSON string for items
+                    const itemsCell = row.insertCell();
+                    try {
+                        const items = JSON.parse(order.items);
+                        // Display item list with quantity
+                        itemsCell.innerHTML = items.map(item => `${item.name} (x${item.quantity})`).join('<br>');
+                    } catch (e) {
+                        itemsCell.textContent = 'Data error';
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error fetching admin data:", error);
+                tableBody.innerHTML = `<tr><td colspan="6" style="color:red;">Error loading data: ${error.message}</td></tr>`;
+            }
+        }
+
+        document.getElementById("refreshOrders").onclick = fetchAndRenderOrders;
+
+        // Load orders on page load
+        fetchAndRenderOrders();
+    </script>
+</body>
+</html>
