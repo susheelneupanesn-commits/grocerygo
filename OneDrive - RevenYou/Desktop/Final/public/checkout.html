@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure E-commerce Checkout</title>
+    <title>Secure E-commerce Checkout (Supabase)</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Inter font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght:400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .StripeElement {
@@ -182,31 +182,32 @@
         </form>
     </div>
     
-    <!-- Load Firebase SDKs -->
+    <!-- Load Supabase SDKs -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, addDoc, doc, updateDoc, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Import Supabase client
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
         
         // Load Stripe.js library
         const stripeScript = document.createElement('script');
         stripeScript.src = "https://js.stripe.com/v3/";
         document.head.appendChild(stripeScript);
         
+        // --- Supabase Global Configuration (REPLACE THESE PLACEHOLDERS) ---
+        // You MUST replace these with your actual Supabase URL and Anon Key
+        const SUPABASE_URL = 'https://your-supabase-url.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'your-anon-key-here'; 
+        // -------------------------------------------------------------------
+
         // --- Globals ---
         const PRODUCT_SUBTOTAL_AUD = 10.00; // Product price in AUD (Dollars)
         window.serverUrl = 'http://localhost:3000/api/create-payment-intent';
         
-        // Firebase Setup
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        // Note: We check if __firebase_config is defined and parse it. If not, it becomes an empty object {}.
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        let db, auth, userId;
+        let supabaseClient, userId;
         let cardElement = null; // Stripe Card Element Instance
         const authStatusElement = document.getElementById('auth-status');
-        const publicOrdersPath = `/artifacts/${appId}/public/data/orders`;
+        
+        // Supabase uses table names instead of nested paths
+        const ORDERS_TABLE_NAME = 'orders'; 
 
         // Mock Available Slots (for dynamic generation)
         const MOCK_SLOTS = {
@@ -288,18 +289,20 @@
         // --- Core Functions ---
 
         function getTrolleyData() {
+            // In a real app, this would come from a cart/session
             return [
                 { name: "Premium Widget (Subtotal)", price: PRODUCT_SUBTOTAL_AUD, quantity: 1 }
             ];
         }
 
         function getCustomerData() {
+             // Extract raw input data
              return {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
                 mobile: document.getElementById('phone').value,
                 address: document.getElementById('address').value,
-                suburb: document.getElementById('suburb').value, // Renamed from city
+                suburb: document.getElementById('suburb').value, 
                 state: document.getElementById('state').value,
                 postcode: document.getElementById('zip').value,
                 deliverySlot: document.getElementById('deliverySlot').value 
@@ -352,7 +355,7 @@
             let postcodeMessage = 'Enter a valid 4-digit Australian Postcode.';
             
             if (zip.length === 4 && /^\d{4}$/.test(zip)) {
-                // Simple client-side estimation based on your old logic
+                // Simple client-side estimation
                 if (zip.startsWith('4')) {
                     deliveryFeeAud = 9.99; 
                     postcodeMessage = 'QLD shipping estimate: $9.99.';
@@ -388,52 +391,38 @@
         }
 
 
-        // 1. Initialize Firebase and Authenticate
-        async function initializeFirebase() {
+        // 1. Initialize Supabase and Establish Session
+        async function initializeSupabase() {
             try {
-                setLogLevel('debug'); 
-                console.log("Attempting Firebase initialization...");
-                console.log("App ID:", appId);
-                console.log("Firebase Config Object (should contain API Key):", firebaseConfig);
+                console.log("Attempting Supabase initialization...");
 
-                const errorMsg = "Firebase configuration is missing or invalid. Check the apiKey field.";
+                const errorMsg = "Supabase configuration is missing. Please replace placeholders with your actual URL and Anon Key.";
                 
-                // This check throws the error you are seeing if firebaseConfig is {}
-                if (!firebaseConfig || !firebaseConfig.apiKey) {
-                    console.error("Configuration Error:", errorMsg, { config: firebaseConfig });
+                if (!SUPABASE_URL || SUPABASE_URL === 'https://your-supabase-url.supabase.co' || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === 'your-anon-key-here') {
+                    console.error("Configuration Error:", errorMsg);
                     throw new Error(errorMsg);
                 }
 
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+                // Initialize the Supabase client
+                supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        authStatusElement.textContent = `User ID: ${userId.substring(0, 8)}... (Authenticated)`;
-                        authStatusElement.className = 'text-center text-sm p-3 rounded-lg bg-green-100 text-green-700';
-                        
-                        // Initial setup
-                        calculateDeliveryEstimate(); 
-                        updateTimeSlots(); // Initialize slot picker
-                        initializeStripe(); // Initialize Stripe only after Firebase is ready
-                        
-                    } else {
-                        if (initialAuthToken) {
-                             await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                             await signInAnonymously(auth);
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase Initialization Error:", error);
+                // Use a local UUID for a guest session 
+                userId = crypto.randomUUID(); 
                 
-                // Enhanced message to hint at configuration issue
-                const displayMsg = error.message.includes("Firebase configuration is missing") 
-                    ? `Config Error: Missing API Key. Ensure Firebase config is supplied.` 
-                    : `Error: Cannot connect to database. (Details: ${error.message})`;
+                authStatusElement.textContent = `User ID: ${userId.substring(0, 8)}... (Guest Session via Supabase)`;
+                authStatusElement.className = 'text-center text-sm p-3 rounded-lg bg-green-100 text-green-700';
+                
+                // Initial setup
+                calculateDeliveryEstimate(); 
+                updateTimeSlots(); 
+                initializeStripe(); 
+
+            } catch (error) {
+                console.error("Supabase Initialization Error:", error);
+                
+                const displayMsg = error.message.includes("Supabase configuration is missing") 
+                    ? `Config Error: Missing Supabase URL/Key. Please check console.` 
+                    : `Error: Cannot connect to Supabase. (Details: ${error.message})`;
 
                 authStatusElement.textContent = displayMsg;
                 authStatusElement.className = 'text-center text-sm p-3 rounded-lg bg-red-100 text-red-700';
@@ -442,6 +431,7 @@
 
         // 2. Stripe Setup
         function initializeStripe() {
+            // Note: In a real Supabase/Stripe setup, this key would likely be handled by a secure backend.
             const stripePublishableKey = 'pk_test_51O7c7wJ1Gz7cR3z3sW2yT8oV6nG3kB0xV0iT7vW1tZ2mX6qT9b4k3pYlX2fG0wW8lR6pYt0tZ4uP0yF3'; 
             
             const stripe = Stripe(stripePublishableKey);
@@ -470,7 +460,7 @@
         // 3. Payment Handling
         async function handlePayment(event, stripe, card) {
             event.preventDefault();
-            if (!userId) return displayMessage("Authentication not complete. Please wait.", true);
+            if (!userId) return displayMessage("Initialization not complete. Please wait.", true);
             
             const customer = getCustomerData();
             if (!customer.postcode || customer.postcode.length !== 4) {
@@ -482,36 +472,70 @@
             
             showProcessing(true);
             
-            let orderDocRef;
+            let orderId;
             let grandTotalAud = 0;
 
             try {
                 const trolley = getTrolleyData();
                 
-                // A. Create the Order in Firestore (Status: PENDING)
+                // A. Create the Order in Supabase (Status: PENDING)
+                const estimatedTotal = PRODUCT_SUBTOTAL_AUD + parseFloat(document.getElementById('delivery-fee-display').textContent.replace('$', '') || 0);
+
+                // --- IMPORTANT SCHEMA ALIGNMENT FIX ---
+                // The delivery slot is collected in the UI but is missing a dedicated column in the DB schema.
+                // We will save it in two places for reliability:
+                // 1. In 'address_line2' (a text field) as a simple string.
+                // 2. As metadata within the 'items' JSONB field.
+                
+                // 1. Prepare items payload and append delivery slot info for redundancy
+                const trolleyWithMetadata = [...trolley]; // Create a copy
+                trolleyWithMetadata.push({
+                    type: "DeliveryMetadata",
+                    slot: customer.deliverySlot, // e.g., "2025-12-01|8:00 AM - 10:00 AM"
+                    address_summary: `${customer.address}, ${customer.suburb}, ${customer.state} ${customer.postcode}`
+                });
+
                 const newOrder = {
-                    customerId: userId,
-                    customerName: customer.name,
-                    customerEmail: customer.email,
-                    shippingAddress: customer,
-                    items: trolley, 
-                    amountEstimate: PRODUCT_SUBTOTAL_AUD, 
-                    status: 'PENDING',
-                    createdAt: new Date(),
-                    lastUpdated: new Date()
+                    customer_name: customer.name,
+                    email: customer.email,
+                    phone: customer.mobile,
+                    
+                    address_line1: customer.address,
+                    // Use address_line2 (TEXT) to store the delivery slot string:
+                    address_line2: customer.deliverySlot, 
+                    suburb: customer.suburb,
+                    postcode: customer.postcode,
+                    state: customer.state,
+                    // country defaults to 'Australia'
+
+                    items: trolleyWithMetadata, // JSONB field now includes slot metadata
+                    total_amount: estimatedTotal, // Store initial estimate
+                    
+                    status: 'pending', 
+                    // fulfillment_status defaults to 'unfulfilled'
                 };
+                
+                // Insert the new order record
+                const { data: insertData, error: insertError } = await supabaseClient
+                    .from(ORDERS_TABLE_NAME)
+                    .insert(newOrder)
+                    .select(); 
 
-                orderDocRef = await addDoc(collection(db, publicOrdersPath), newOrder);
-                const orderId = orderDocRef.id;
+                if (insertError) {
+                    throw new Error(`Supabase Insert Error: ${insertError.message}`);
+                }
+                
+                // Assuming your Supabase table has an 'id' column of type UUID
+                orderId = insertData[0].id;
 
-                displayMessage(`Order created in Firestore: ${orderId}. Requesting final total and payment intent...`, false, 'bg-blue-100 text-blue-700');
+                displayMessage(`Order created in Supabase: ${orderId}. Requesting final total and payment intent...`, false, 'bg-blue-100 text-blue-700');
                 
                 // B. Fetch the Client Secret and definitive Total from Node.js Server
                 const response = await fetch(window.serverUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        trolley: trolley, 
+                        trolley: trolley, // Send clean trolley without metadata to server
                         customer: customer
                     })
                 });
@@ -519,25 +543,28 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    await updateDoc(doc(db, publicOrdersPath, orderId), {
-                        status: 'FAILED_SERVER_REJECT',
-                        serverError: data.error,
-                        lastUpdated: new Date()
-                    });
+                    // Update Supabase order status to FAILED_SERVER_REJECT
+                    await supabaseClient
+                        .from(ORDERS_TABLE_NAME)
+                        .update({
+                            status: 'failed',
+                        })
+                        .eq('id', orderId);
                     throw new Error(data.error);
                 }
 
                 const clientSecret = data.clientSecret;
                 grandTotalAud = data.grandTotal; // Server's source of truth
-                const amountInCents = Math.round(grandTotalAud * 100);
                 
-                // Update Firestore order with final price and PI details
-                 await updateDoc(doc(db, publicOrdersPath, orderId), {
-                        amountFinal: amountInCents,
-                        orderNumber: data.orderNumber, 
-                        stripePaymentIntentId: clientSecret.split('_secret')[0],
-                        lastUpdated: new Date()
-                    });
+                // Update Supabase order with final price, order number, and PI details
+                 await supabaseClient
+                    .from(ORDERS_TABLE_NAME)
+                    .update({
+                        total_amount: grandTotalAud, // Update with server's confirmed final total
+                        order_number: data.orderNumber, 
+                        stripe_id: clientSecret.split('_secret')[0], // Use stripe_id column
+                    })
+                    .eq('id', orderId);
                 
                 // C. Confirm Payment with Stripe
                 const result = await stripe.confirmCardPayment(clientSecret, {
@@ -551,11 +578,25 @@
                 });
 
                 if (result.error) {
-                    await updateDoc(doc(db, publicOrdersPath, orderId), { status: 'FAILED', lastUpdated: new Date(), paymentError: result.error.message });
-                    displayMessage(`Payment Failed: ${result.error.message}. Status set to FAILED in Firestore.`, true);
+                    // Update Supabase order status to failed
+                    await supabaseClient
+                        .from(ORDERS_TABLE_NAME)
+                        .update({ 
+                            status: 'failed', 
+                        })
+                        .eq('id', orderId);
+                        
+                    displayMessage(`Payment Failed: ${result.error.message}. Status set to failed in Supabase.`, true);
                 } else if (result.paymentIntent.status === 'succeeded') {
-                    await updateDoc(doc(db, publicOrdersPath, orderId), { status: 'PAID', lastUpdated: new Date() });
+                    // Update Supabase order status to paid
+                    await supabaseClient
+                        .from(ORDERS_TABLE_NAME)
+                        .update({ 
+                            status: 'paid', 
+                        })
+                        .eq('id', orderId);
                     
+                    // Note: You may want to redirect to a success page that displays the order number/ID
                     window.location.href = `success.html?orderId=${orderId}&orderNumber=${data.orderNumber}`; 
                 } else {
                     displayMessage(`Payment status: ${result.paymentIntent.status}. Please check Stripe dashboard.`, true);
@@ -563,7 +604,7 @@
 
             } catch (error) {
                 console.error('[Checkout Error]', error);
-                displayMessage(`System Error: ${error.message}. Ensure 'server.js' is running.`, true);
+                displayMessage(`System Error: ${error.message}. Ensure 'server.js' is running and Supabase is configured.`, true);
             } finally {
                 // Final UI update using server-calculated total
                 const finalDisplay = grandTotalAud > 0 ? grandTotalAud.toFixed(2) : document.getElementById('final-total-display').textContent.replace('$', '').replace(' AUD', '');
@@ -616,7 +657,7 @@
         }
 
         // Start the application
-        initializeFirebase();
+        initializeSupabase();
     </script>
 </body>
 </html>
