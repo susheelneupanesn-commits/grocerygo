@@ -2,6 +2,10 @@
   "version": 2,
   "builds": [
     {
+      "src": "server.py",
+      "use": "@vercel/python"
+    },
+    {
       "src": "api/**/*.py",
       "use": "@vercel/python"
     },
@@ -13,7 +17,7 @@
   "routes": [
     {
       "src": "/create-payment-intent",
-      "dest": "/api/server.py",
+      "dest": "/server",
       "methods": ["POST"]
     },
     {
