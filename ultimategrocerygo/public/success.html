@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>GroceryGo — Order Confirmed!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #eef2ff; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-xl w-full bg-white p-8 md:p-12 rounded-2xl shadow-2xl text-center border-t-8 border-indigo-600">
+        <div class="mb-6">
+            <svg class="w-20 h-20 text-green-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">Order Confirmed!</h1>
+        <p class="text-xl text-gray-600 mb-6">Thank you for your purchase from **GroceryGo**.</p>
+        
+        <div class="bg-green-50 p-4 rounded-xl mb-6">
+            <p class="text-lg font-semibold text-green-700">Your Order Number is:</p>
+            <p id="order-number-display" class="text-3xl font-extrabold text-indigo-600 mt-1">#LOADING...</p>
+        </div>
+
+        <p class="text-sm text-gray-500 mt-4">A final confirmation and receipt will be sent to your email shortly.</p>
+        
+        <a href="/" class="mt-8 inline-block px-8 py-3 bg-indigo-600 text-white text-base font-semibold rounded-full shadow-lg hover:bg-indigo-700 transition duration-150">
+            Continue Shopping
+        </a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderNumber = urlParams.get('order');
+            if (orderNumber) {
+                document.getElementById('order-number-display').textContent = `#${orderNumber}`;
+            } else {
+                document.getElementById('order-number-display').textContent = 'Error: No Order ID';
+            }
+        });
+    </script>
+</body>
+</html>
