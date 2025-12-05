@@ -20,7 +20,7 @@
 *{box-sizing:border-box}
 body{font-family:'Poppins',sans-serif;margin:0;background:var(--bg-color);color:var(--text-color);}
 header{background:linear-gradient(to right,var(--primary-color),var(--secondary-color));color:#fff;padding:15px 10px;text-align:center;position:sticky;top:0;z-index:1000;}
-header h1{margin:0;font-size:30px;font-weight:900;display:flex;justify-content:center;align-items:center;height:60px;letter-spacing:-2px;}
+header h1{margin:0;font-size:30px;font-weight:900;display:flex;justify-content:center;align-items:center;height:60px;}
 .logo-container{display:flex;align-items:center;position:relative;padding-left:10px}
 .logo-trolley-g{font-size:55px;color:white;font-weight:900;line-height:1;position:relative;padding-right:2px;text-shadow:1px 1px 0 var(--primary-color),2px 2px 2px rgba(0,0,0,0.5)}
 .logo-grocery-text{position:absolute;top:-4px;left:10px;font-size:14px;font-weight:700;color:#FF8C00;letter-spacing:0.5px;white-space:nowrap;text-shadow:0 0 1px rgba(0,0,0,0.4);z-index:10;transform:rotate(-5deg);padding:2px 4px;background:rgba(255,255,255,0.1);border-radius:3px}
@@ -29,7 +29,6 @@ nav{margin-top:5px}
 nav a{color:white;text-decoration:none;margin:0 10px;font-weight:600;font-size:14px;padding:5px 0;display:inline-block}
 nav a:hover{text-decoration:underline}
 
-/* MAIN LAYOUT */
 .checkout-container{max-width:1200px;margin:40px auto;padding:10px;display:flex;flex-wrap:wrap;gap:30px;}
 .form-section{flex:2;min-width:300px;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.06);}
 .summary-section{flex:1;min-width:280px;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.06);}
@@ -38,8 +37,6 @@ label{display:block;margin:10px 0 5px;font-weight:600;}
 input, select{width:100%;padding:10px;margin-bottom:10px;border-radius:6px;border:1px solid var(--border-color);}
 #payBtn{background:#fbbf24;color:white;font-weight:700;padding:12px;border:none;border-radius:8px;width:100%;cursor:pointer;transition:0.2s;}
 #payBtn:hover{background:#f59e0b;}
-
-/* ORDER SUMMARY */
 .summary-item{display:flex;justify-content:space-between;margin-bottom:10px;font-weight:500;}
 footer{background:var(--nepali-blue);color:white;text-align:center;padding:15px 0;font-size:14px;margin-top:40px;}
 </style>
@@ -62,7 +59,6 @@ footer{background:var(--nepali-blue);color:white;text-align:center;padding:15px 
 </header>
 
 <div class="checkout-container">
-  <!-- Billing Form -->
   <div class="form-section">
     <h2>Billing & Delivery Details</h2>
     <label for="name">Full Name</label>
@@ -97,7 +93,6 @@ footer{background:var(--nepali-blue);color:white;text-align:center;padding:15px 
     </select>
   </div>
 
-  <!-- Order Summary -->
   <aside class="summary-section">
     <h2>Order Summary</h2>
     <div class="summary-item"><span>Subtotal:</span> <span id="checkoutSubtotal">$0.00</span></div>
@@ -114,26 +109,18 @@ footer{background:var(--nepali-blue);color:white;text-align:center;padding:15px 
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-
-  // Supabase setup
-  const SUPABASE_URL = "https://gikdqaxdqfmzdvolkxbn.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+  const checkoutSubtotalEl = document.getElementById('checkoutSubtotal');
+  const checkoutTotalEl = document.getElementById('checkoutTotal');
   const deliveryFee = 10.00;
 
-  // Load trolley and subtotal from localStorage
-  let trolley = JSON.parse(localStorage.getItem('grocerygo_trolley')) || [];
+  // Load subtotal from trolley.html
   let subtotal = parseFloat(localStorage.getItem('grocerygo_subtotal')) || 0;
 
-  function updateSummary(){
-    document.getElementById('checkoutSubtotal').textContent = `$${subtotal.toFixed(2)}`;
-    document.getElementById('checkoutTotal').textContent = `$${(subtotal + deliveryFee).toFixed(2)}`;
-  }
+  // Update order summary
+  checkoutSubtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+  checkoutTotalEl.textContent = `$${(subtotal + deliveryFee).toFixed(2)}`;
 
-  updateSummary();
-
-  // Zone-based delivery slots
+  // Delivery zones
   const zones = {
     A:['Monday 8-11','Tuesday 11-15','Wednesday 15-19','Thursday 8-11','Friday 11-15','Saturday 15-19'],
     B:['Monday 11-15','Tuesday 15-19','Wednesday 8-11','Thursday 11-15','Friday 15-19','Saturday 8-11'],
@@ -141,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const zoneA = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4169,4170,4171,4172,4173,4174,4178,4179,4183,4184,4205,4207,4280,4285,4300,4301,4303,4304,4305,4306,4307,4308,4311,4340,4346,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4512,4513,4514,4515,4516,4517,4518,4519,4520,4521];
-  const zoneB = [4530,4532,4535,4550,4551,4552,4553,4554]; 
+  const zoneB = [4530,4532,4535,4550,4551,4552,4553,4554];
   const zoneC = [4560,4561,4562,4563,4564,4565];
 
   function getZone(postcode){
@@ -157,29 +144,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const slotSelect = document.getElementById('deliverySlot');
     slotSelect.innerHTML = '<option>Anytime</option>';
     const zone = getZone(postcode);
-    if(!zone) slotSelect.innerHTML = '<option>Delivery not available in your area</option>';
-    else zones[zone].forEach(slot=>slotSelect.innerHTML += `<option>${slot}</option>`);
+    if(!zone) {
+      slotSelect.innerHTML = '<option>Delivery not available in your area</option>';
+      return;
+    }
+    zones[zone].forEach(slot=>{
+      slotSelect.innerHTML += `<option>${slot}</option>`;
+    });
   }
 
   document.getElementById('postcode').addEventListener('change', populateSlots);
 
   // Stripe payment
-  const stripe = Stripe('pk_test_YourPublishableKeyHere'); 
+  const stripe = Stripe('pk_test_YourPublishableKeyHere'); // replace
   document.getElementById('payBtn').addEventListener('click', async ()=>{
     const name = document.getElementById('name').value;
     const email = document.getElementById('email').value;
-    if(!name || !email) { alert("Please fill name and email"); return;}
+    if(!name || !email) { alert("Please fill name and email"); return; }
+    
     const response = await fetch('/api/create-payment-intent',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({amount:(subtotal+deliveryFee)*100})
+      body: JSON.stringify({amount:(subtotal + deliveryFee)*100}) // cents
     });
     const data = await response.json();
     const result = await stripe.confirmCardPayment(data.clientSecret,{
       payment_method:{card:{},billing_details:{name,email}}
     });
     if(result.error){ alert(result.error.message); }
-    else if(result.paymentIntent.status==='succeeded'){
+    else if(result.paymentIntent?.status==='succeeded'){
       localStorage.removeItem('grocerygo_trolley');
       localStorage.removeItem('grocerygo_subtotal');
       window.location.href = `order-success.html?order=${Math.floor(Math.random()*1000000)}`;
