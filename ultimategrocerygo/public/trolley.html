@@ -1,16 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GroceryGo | Trolley</title>
-  <link rel="stylesheet" href="css/style.css">
-  <style>
-    .qty-btn { padding: 2px 8px; margin: 0 2px; cursor: pointer; }
-    .summary-buttons button { margin-right: 10px; padding: 8px 12px; cursor: pointer; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GroceryGo | Checkout</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --primary-color:#DC143C;
+  --secondary-color:#003893;
+  --highlight-color:#FFD700;
+  --bg-color:#f8f9fa;
+  --text-color:#222;
+  --border-color:#ddd;
+  --nepali-blue:#003893;
+}
+*{box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;margin:0;background:var(--bg-color);color:var(--text-color);}
+header{background:linear-gradient(to right,var(--primary-color),var(--secondary-color));color:#fff;padding:15px 10px;text-align:center;position:sticky;top:0;z-index:1000;}
+header h1{margin:0;font-size:30px;font-weight:900;display:flex;justify-content:center;align-items:center;height:60px;}
+.logo-container{display:flex;align-items:center;position:relative;padding-left:10px}
+.logo-trolley-g{font-size:55px;color:white;font-weight:900;line-height:1;position:relative;padding-right:2px;text-shadow:1px 1px 0 var(--primary-color),2px 2px 2px rgba(0,0,0,0.5)}
+.logo-grocery-text{position:absolute;top:-4px;left:10px;font-size:14px;font-weight:700;color:#FF8C00;letter-spacing:0.5px;white-space:nowrap;text-shadow:0 0 1px rgba(0,0,0,0.4);z-index:10;transform:rotate(-5deg);padding:2px 4px;background:rgba(255,255,255,0.1);border-radius:3px}
+.logo-o{font-size:55px;color:white;font-weight:900;line-height:1;text-shadow:1px 1px 0 var(--primary-color),2px 2px 2px rgba(0,0,0,0.5);transform:translateX(-5px) rotate(2deg);position:relative;z-index:5}
+nav{margin-top:5px}
+nav a{color:white;text-decoration:none;margin:0 10px;font-weight:600;font-size:14px;padding:5px 0;display:inline-block}
+nav a:hover{text-decoration:underline}
+
+.checkout-container{max-width:1200px;margin:40px auto;padding:10px;display:flex;flex-wrap:wrap;gap:30px;}
+.form-section{flex:2;min-width:300px;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.06);}
+.summary-section{flex:1;min-width:280px;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.06);}
+h2{font-size:1.5rem;margin-bottom:15px;}
+label{display:block;margin:10px 0 5px;font-weight:600;}
+input, select{width:100%;padding:10px;margin-bottom:10px;border-radius:6px;border:1px solid var(--border-color);}
+#payBtn{background:#fbbf24;color:white;font-weight:700;padding:12px;border:none;border-radius:8px;width:100%;cursor:pointer;transition:0.2s;}
+#payBtn:hover{background:#f59e0b;}
+.summary-item{display:flex;justify-content:space-between;margin-bottom:10px;font-weight:500;}
+footer{background:var(--nepali-blue);color:white;text-align:center;padding:15px 0;font-size:14px;margin-top:40px;}
+</style>
 </head>
 <body>
+
 <header>
   <h1>
     <div class="logo-container">
@@ -24,164 +56,131 @@
     <a href="about.html">ABOUT US</a>
     <a href="contact.html">CONTACT</a>
   </nav>
-  <div class="header-tools">
-    <a href="trolley.html" class="trolley-icon">🛒</a>
-  </div>
 </header>
 
-<main class="cart-page-main">
-  <h1>Your Shopping Cart</h1>
+<div class="checkout-container">
+  <div class="form-section">
+    <h2>Billing & Delivery Details</h2>
+    <label for="name">Full Name</label>
+    <input type="text" id="name" required>
+    <label for="email">Email</label>
+    <input type="email" id="email" required>
+    <label for="phone">Phone</label>
+    <input type="text" id="phone" required>
+    <label for="address">Address Line 1</label>
+    <input type="text" id="address" required>
+    <label for="address2">Address Line 2</label>
+    <input type="text" id="address2">
+    <label for="suburb">Suburb</label>
+    <input type="text" id="suburb" required>
+    <label for="postcode">Postcode</label>
+    <input type="text" id="postcode" required>
+    <label for="state">State</label>
+    <select id="state">
+      <option value="QLD" selected>Queensland</option>
+      <option value="NSW">New South Wales</option>
+      <option value="VIC">Victoria</option>
+      <option value="WA">Western Australia</option>
+      <option value="SA">South Australia</option>
+      <option value="TAS">Tasmania</option>
+      <option value="NT">Northern Territory</option>
+      <option value="ACT">Australian Capital Territory</option>
+    </select>
 
-  <div class="cart-flex-wrapper">
-    <div class="trolley-table-wrapper">
-      <table class="trolley-table">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Unit Price</th>
-            <th>Quantity</th>
-            <th>Item Subtotal (AUD $)</th>
-          </tr>
-        </thead>
-        <tbody id="trolleyTable">
-          <tr>
-            <td colspan="5" class="empty-cart-message">
-              Your cart is empty. <a href="store.html">Start shopping now!</a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <aside class="order-summary">
-      <h2>Order Summary</h2>
-      <div class="summary-item"><span>Subtotal:</span> <span id="trolleySubtotal">$0.00</span></div>
-      <div class="summary-item"><span>Delivery Fee:</span> <span>Calculated on next page</span></div>
-
-      <div class="summary-buttons">
-        <button id="continueShoppingBtn">Continue Shopping</button>
-        <button id="clearTrolleyBtn">Empty Cart</button>
-        <button id="proceedCheckoutBtn">Proceed Checkout</button>
-      </div>
-      <div id="confirmPopup" style="
-  display:none;
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  background: hsl(52, 95%, 46%);
-  color: #333;
-  padding: 20px 30px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  z-index: 10000;
-  text-align: center;
-">
-  <p id="confirmText" style="margin-bottom:15px;font-weight:600;"></p>
-  <button id="confirmYes" style="padding:6px 12px;margin-right:10px;cursor:pointer;background:#f57c00;color:white;border:none;border-radius:4px;">Yes</button>
-  <button id="confirmNo" style="padding:6px 12px;cursor:pointer;background:#9e9e9e;color:white;border:none;border-radius:4px;">No</button>
-</div>
-    </aside>
+    <label for="deliverySlot">Delivery Time Slot</label>
+    <select id="deliverySlot">
+      <option>Anytime</option>
+    </select>
   </div>
-</main>
+
+  <aside class="summary-section">
+    <h2>Order Summary</h2>
+    <div class="summary-item"><span>Subtotal:</span> <span id="checkoutSubtotal">$0.00</span></div>
+    <div class="summary-item"><span>Delivery Fee:</span> <span>$10.00</span></div>
+    <div class="summary-item"><span>Total:</span> <span id="checkoutTotal">$0.00</span></div>
+    <button id="payBtn">Pay with Card</button>
+    <p style="font-size:0.85rem;margin-top:10px;color:#555;">Stripe payment will be processed securely.</p>
+  </aside>
+</div>
 
 <footer>
-  <p>© 2025 GroceryGo. All rights reserved.</p>
+  © 2025 GroceryGo. All rights reserved.
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = "https://gikdqaxdqfmzdvolkxbn.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdpa2RxYXhkcWZtemR2b2xreGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyOTQwNDIsImV4cCI6MjA3Nzg3MDA0Mn0.pJ-9KfCxV7YT5loiURW14xRmf72s1EZRFRh4iKGnQis";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const LS_KEY = 'grocerygo_trolley';
-let trolley = JSON.parse(localStorage.getItem(LS_KEY)) || [];
+document.addEventListener('DOMContentLoaded', () => {
+  const checkoutSubtotalEl = document.getElementById('checkoutSubtotal');
+  const checkoutTotalEl = document.getElementById('checkoutTotal');
+  const deliveryFee = 10.00;
 
-// Update header trolley count
-function updateTrolleyCount() {
-  const el = document.getElementById('trolleyCount');
-  if(el) el.textContent = trolley.reduce((sum, item) => sum + item.quantity, 0);
-}
+  // Load subtotal from trolley.html
+  let subtotal = parseFloat(localStorage.getItem('grocerygo_subtotal')) || 0;
 
-// Save trolley and update count
-function saveTrolley() {
-  localStorage.setItem(LS_KEY, JSON.stringify(trolley));
-  updateTrolleyCount();
-}
+  // Update order summary
+  checkoutSubtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+  checkoutTotalEl.textContent = `$${(subtotal + deliveryFee).toFixed(2)}`;
 
-// Render trolley table
-function renderTrolley() {
-  const trolleyBody = document.getElementById('trolleyTable');
-  const subtotalEl = document.getElementById('trolleySubtotal');
+  // Delivery zones
+  const zones = {
+    A:['Monday 8-11','Tuesday 11-15','Wednesday 15-19','Thursday 8-11','Friday 11-15','Saturday 15-19'],
+    B:['Monday 11-15','Tuesday 15-19','Wednesday 8-11','Thursday 11-15','Friday 15-19','Saturday 8-11'],
+    C:['Monday 15-19','Tuesday 8-11','Wednesday 11-15','Thursday 15-19','Friday 8-11','Saturday 11-15']
+  };
 
-  if(!trolley.length) {
-    trolleyBody.innerHTML = `<tr><td colspan="4" class="empty-cart-message">Your cart is empty. <a href="store.html">Start shopping now!</a></td></tr>`;
-    subtotalEl.textContent = '$0.00';
-    localStorage.setItem('grocerygo_subtotal', "0.00");
-    updateTrolleyCount();
-    return;
+  const zoneA = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4169,4170,4171,4172,4173,4174,4178,4179,4183,4184,4205,4207,4280,4285,4300,4301,4303,4304,4305,4306,4307,4308,4311,4340,4346,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4512,4513,4514,4515,4516,4517,4518,4519,4520,4521];
+  const zoneB = [4530,4532,4535,4550,4551,4552,4553,4554];
+  const zoneC = [4560,4561,4562,4563,4564,4565];
+
+  function getZone(postcode){
+    postcode = parseInt(postcode);
+    if(zoneA.includes(postcode)) return 'A';
+    if(zoneB.includes(postcode)) return 'B';
+    if(zoneC.includes(postcode)) return 'C';
+    return null;
   }
 
-  trolleyBody.innerHTML = '';
-  let subtotal = 0;
+  function populateSlots(){
+    const postcode = document.getElementById('postcode').value;
+    const slotSelect = document.getElementById('deliverySlot');
+    slotSelect.innerHTML = '<option>Anytime</option>';
+    const zone = getZone(postcode);
+    if(!zone) {
+      slotSelect.innerHTML = '<option>Delivery not available in your area</option>';
+      return;
+    }
+    zones[zone].forEach(slot=>{
+      slotSelect.innerHTML += `<option>${slot}</option>`;
+    });
+  }
 
-  trolley.forEach((item, idx) => {
-    const totalPrice = (item.price || 0) * item.quantity;
-    subtotal += totalPrice;
+  document.getElementById('postcode').addEventListener('change', populateSlots);
 
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${item.name} <br> ${item.brand || ''} ${item.variant ? '('+item.variant+')' : ''}</td>
-      <td>$${item.price.toFixed(2)}</td>
-      <td>
-        <button class="qty-btn" onclick="changeQty(${idx}, -1)">-</button>
-        ${item.quantity}
-        <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
-      </td>
-      <td>$${totalPrice.toFixed(2)}</td>
-    `;
-    trolleyBody.appendChild(row);
+  // Stripe payment
+  const stripe = Stripe('pk_test_YourPublishableKeyHere'); // replace
+  document.getElementById('payBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    if(!name || !email) { alert("Please fill name and email"); return; }
+    
+    const response = await fetch('/api/create-payment-intent',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({amount:(subtotal + deliveryFee)*100}) // cents
+    });
+    const data = await response.json();
+    const result = await stripe.confirmCardPayment(data.clientSecret,{
+      payment_method:{card:{},billing_details:{name,email}}
+    });
+    if(result.error){ alert(result.error.message); }
+    else if(result.paymentIntent?.status==='succeeded'){
+      localStorage.removeItem('grocerygo_trolley');
+      localStorage.removeItem('grocerygo_subtotal');
+      window.location.href = `order-success.html?order=${Math.floor(Math.random()*1000000)}`;
+    }
   });
 
-  subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
-
-  // SAVE SUBTOTAL FOR CHECKOUT
-  localStorage.setItem('grocerygo_subtotal', subtotal.toFixed(2));
-
-  updateTrolleyCount();
-}
-
-
-// Change quantity with confirmation on removal
-function changeQty(idx, delta) {
-  const item = trolley[idx];
-  if(item.quantity + delta <= 0) {
-    if(confirm(`Are you sure you want to remove "${item.name}${item.variant ? ' ('+item.variant+')' : ''}" from your trolley?`)) {
-      trolley.splice(idx, 1);
-    } else return;
-  } else {
-    item.quantity += delta;
-  }
-  saveTrolley();
-  renderTrolley();
-}
-
-// Clear entire trolley
-document.getElementById('clearTrolleyBtn').addEventListener('click', () => {
-  if(confirm('Are you sure you want to empty your trolley?')) {
-    trolley = [];
-    saveTrolley();
-    renderTrolley();
-  }
 });
-
-// Continue shopping and checkout buttons
-document.getElementById('continueShoppingBtn').addEventListener('click', () => {
-  window.location.href = 'store.html';
-});
-document.getElementById('proceedCheckoutBtn').addEventListener('click', () => {
-  window.location.href = 'checkout.html';
-});
-
-document.addEventListener('DOMContentLoaded', renderTrolley);
 </script>
+
+</body>
+</html>

@@ -1,215 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GroceryGo — Secure Checkout</title>
-<script src="https://js.stripe.com/v3"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GroceryGo | Checkout</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body { font-family: 'Inter', sans-serif; background:#f3f4f6; }
-.StripeElement { box-sizing:border-box; height:48px; padding:12px; border:1px solid #e5e7eb; border-radius:.5rem; background:#fff; transition: all 0.15s ease; }
-.StripeElement--focus { box-shadow:0 0 0 3px rgba(79,70,229,0.15); border-color:#4f46e5; }
-.summary-card { position: sticky; top: 1rem; }
-.time-slot-radio:checked + label { background:#4f46e5; color:#fff; border-color:#4f46e5; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+:root{
+  --primary-color:#DC143C;
+  --secondary-color:#003893;
+  --highlight-color:#FFD700;
+  --bg-color:#f8f9fa;
+  --text-color:#222;
+  --border-color:#ddd;
+  --nepali-blue:#003893;
+}
+*{box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;margin:0;background:var(--bg-color);color:var(--text-color);}
+header{background:linear-gradient(to right,var(--primary-color),var(--secondary-color));color:#fff;padding:15px 10px;text-align:center;position:sticky;top:0;z-index:1000;}
+header h1{margin:0;font-size:30px;font-weight:900;display:flex;justify-content:center;align-items:center;height:60px;letter-spacing:-2px;}
+.logo-container{display:flex;align-items:center;position:relative;padding-left:10px}
+.logo-trolley-g{font-size:55px;color:white;font-weight:900;line-height:1;position:relative;padding-right:2px;text-shadow:1px 1px 0 var(--primary-color),2px 2px 2px rgba(0,0,0,0.5)}
+.logo-grocery-text{position:absolute;top:-4px;left:10px;font-size:14px;font-weight:700;color:#FF8C00;letter-spacing:0.5px;white-space:nowrap;text-shadow:0 0 1px rgba(0,0,0,0.4);z-index:10;transform:rotate(-5deg);padding:2px 4px;background:rgba(255,255,255,0.1);border-radius:3px}
+.logo-o{font-size:55px;color:white;font-weight:900;line-height:1;text-shadow:1px 1px 0 var(--primary-color),2px 2px 2px rgba(0,0,0,0.5);transform:translateX(-5px) rotate(2deg);position:relative;z-index:5}
+nav{margin-top:5px}
+nav a{color:white;text-decoration:none;margin:0 10px;font-weight:600;font-size:14px;padding:5px 0;display:inline-block}
+nav a:hover{text-decoration:underline}
+
+/* MAIN LAYOUT */
+.checkout-container{max-width:1200px;margin:40px auto;padding:10px;display:flex;flex-wrap:wrap;gap:30px;}
+.form-section{flex:2;min-width:300px;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.06);}
+.summary-section{flex:1;min-width:280px;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.06);}
+h2{font-size:1.5rem;margin-bottom:15px;}
+label{display:block;margin:10px 0 5px;font-weight:600;}
+input, select{width:100%;padding:10px;margin-bottom:10px;border-radius:6px;border:1px solid var(--border-color);}
+#payBtn{background:#fbbf24;color:white;font-weight:700;padding:12px;border:none;border-radius:8px;width:100%;cursor:pointer;transition:0.2s;}
+#payBtn:hover{background:#f59e0b;}
+
+/* ORDER SUMMARY */
+.summary-item{display:flex;justify-content:space-between;margin-bottom:10px;font-weight:500;}
+footer{background:var(--nepali-blue);color:white;text-align:center;padding:15px 0;font-size:14px;margin-top:40px;}
 </style>
 </head>
-<body class="min-h-screen p-4 lg:p-8">
-<div class="max-w-5xl mx-auto">
-  <h1 class="text-3xl lg:text-4xl font-extrabold mb-6 text-center text-gray-800">Secure Checkout</h1>
+<body>
 
-  <form id="payment-form" class="lg:grid lg:grid-cols-3 lg:gap-12" novalidate>
-    <div class="lg:col-span-2 space-y-6">
-      <!-- Shipping Information -->
-      <section class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Shipping Information</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <label><span class="text-sm font-medium">Full Name</span>
-            <input id="name" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-          </label>
-          <label><span class="text-sm font-medium">Email</span>
-            <input id="email" type="email" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-          </label>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-          <label><span class="text-sm font-medium">Mobile Phone</span>
-            <input id="phone" type="tel" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-          </label>
-          <label><span class="text-sm font-medium">Address Line 1</span>
-            <input id="address" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-          </label>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-          <label><span class="text-sm font-medium">Suburb</span>
-            <input id="suburb" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-          </label>
-          <label><span class="text-sm font-medium">State</span>
-            <input id="state" value="QLD" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-          </label>
-          <label><span class="text-sm font-medium">Postcode</span>
-            <input id="postcode" maxlength="4" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-          </label>
-        </div>
-      </section>
-
-      <!-- Delivery Slot -->
-      <section class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Choose Delivery Slot</h2>
-        <label class="block mb-4">
-          <span class="text-sm font-medium">Delivery Date</span>
-          <input id="delivery-date" type="date" class="mt-1 w-full p-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-        </label>
-        <div class="text-sm font-medium mb-3">Available Time Slots (<span id="selected-day-display" class="font-semibold text-indigo-600">Please Select a Date</span>)</div>
-        <div id="time-slot-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <p class="text-gray-500 col-span-full text-sm">Please select a delivery date first.</p>
-        </div>
-        <input id="deliverySlot" type="hidden" value="">
-      </section>
-
-      <!-- Payment Details -->
-      <section class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Payment Details</h2>
-        <label class="block text-sm font-medium mb-2">Card Details (Secured by Stripe)</label>
-        <div id="card-element" class="mt-2"></div>
-        <div id="message-box" class="hidden mt-4 p-3 rounded-lg text-sm" role="alert"><p id="message-text"></p></div>
-      </section>
-
-      <div class="lg:hidden pb-8">
-        <button id="submit-button-mobile" class="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50" disabled>
-          <span id="button-text-mobile">Pay $0.00</span>
-        </button>
-      </div>
+<header>
+  <h1>
+    <div class="logo-container">
+      <span class="logo-trolley-g">G<span class="logo-grocery-text">Grocery</span></span>
+      <span class="logo-o">o</span>
     </div>
+  </h1>
+  <nav>
+    <a href="index.html">HOME</a>
+    <a href="store.html">STORE</a>
+    <a href="about.html">ABOUT US</a>
+    <a href="contact.html">CONTACT</a>
+  </nav>
+</header>
 
-    <!-- Order Summary -->
-    <div class="lg:col-span-1 mt-8 lg:mt-0">
-      <div class="summary-card bg-indigo-50 p-6 rounded-xl shadow-xl border border-indigo-200">
-        <h2 class="text-2xl font-bold text-indigo-800 mb-4">Order Summary</h2>
-        <div id="order-details" class="mt-3 text-gray-700 space-y-2 border-b pb-3">
-          <div class="flex justify-between"><span>Items Subtotal</span><span id="subtotal-display" class="font-semibold">$0.00</span></div>
-        </div>
-        <div class="pt-3 mt-3 space-y-2">
-          <div class="flex justify-between items-center">
-            <span>Delivery Fee</span>
-            <span id="delivery-fee-display" class="font-semibold text-gray-700">$0.00</span>
-          </div>
-          <div class="flex justify-between items-center text-2xl font-extrabold text-indigo-800 border-t pt-3 mt-3">
-            <span>Grand Total</span>
-            <span id="final-total-display">$0.00 AUD</span>
-          </div>
-        </div>
-        <p id="delivery-info" class="text-xs text-red-600 mt-4 text-center font-medium">Please enter a valid postcode and select a slot.</p>
-        <button id="submit-button-desktop" class="hidden lg:block w-full py-3 mt-4 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50" disabled>
-          <span id="button-text-desktop">Pay $0.00</span>
-        </button>
-      </div>
-    </div>
-  </form>
+<div class="checkout-container">
+  <!-- Billing Form -->
+  <div class="form-section">
+    <h2>Billing & Delivery Details</h2>
+    <label for="name">Full Name</label>
+    <input type="text" id="name" required>
+    <label for="email">Email</label>
+    <input type="email" id="email" required>
+    <label for="phone">Phone</label>
+    <input type="text" id="phone" required>
+    <label for="address">Address Line 1</label>
+    <input type="text" id="address" required>
+    <label for="address2">Address Line 2</label>
+    <input type="text" id="address2">
+    <label for="suburb">Suburb</label>
+    <input type="text" id="suburb" required>
+    <label for="postcode">Postcode</label>
+    <input type="text" id="postcode" required>
+    <label for="state">State</label>
+    <select id="state">
+      <option value="QLD" selected>Queensland</option>
+      <option value="NSW">New South Wales</option>
+      <option value="VIC">Victoria</option>
+      <option value="WA">Western Australia</option>
+      <option value="SA">South Australia</option>
+      <option value="TAS">Tasmania</option>
+      <option value="NT">Northern Territory</option>
+      <option value="ACT">Australian Capital Territory</option>
+    </select>
+
+    <label for="deliverySlot">Delivery Time Slot</label>
+    <select id="deliverySlot">
+      <option>Anytime</option>
+    </select>
+  </div>
+
+  <!-- Order Summary -->
+  <aside class="summary-section">
+    <h2>Order Summary</h2>
+    <div class="summary-item"><span>Subtotal:</span> <span id="checkoutSubtotal">$0.00</span></div>
+    <div class="summary-item"><span>Delivery Fee:</span> <span>$10.00</span></div>
+    <div class="summary-item"><span>Total:</span> <span id="checkoutTotal">$0.00</span></div>
+    <button id="payBtn">Pay with Card</button>
+    <p style="font-size:0.85rem;margin-top:10px;color:#555;">Stripe payment will be processed securely.</p>
+  </aside>
 </div>
 
-<script type="module">
-import { supabase } from '/js/supabase-js.js';
+<footer>
+  © 2025 GroceryGo. All rights reserved.
+</footer>
 
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SUX2cAtxwsqQt5Tf4eFuJC4uXKoauXjBAU5TiHC7MZnlR7rI6HIyHCMYJFeaCU7rSkQ4FBJD5q53QOw3DPKcOlg00VHp43m4l';
-const SERVER_CREATE_PI = '/api/create-payment-intent';
+<script>
+document.addEventListener('DOMContentLoaded', () => {
 
-let stripe = null;
-let cardElement = null;
+  // Supabase setup
+  const SUPABASE_URL = "https://gikdqaxdqfmzdvolkxbn.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- DELIVERY ZONES & FEES ---
-const GROUP_A = [4300,4301,4303,4304,4305,4306,4307,4308,4311,4114,4118,4124,4125,4127,4128,4129,4131,4132,4133,4207,4280,4285,4290];
-const GROUP_B = [4169,4170,4171,4172,4173,4174,4178,4179,4157,4158,4159,4160,4161,4163,4164,4165];
-const GROUP_C = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4520];
+  const deliveryFee = 10.00;
 
-const POSTCODE_DISTANCES = {};
-GROUP_A.forEach((pc,i)=>POSTCODE_DISTANCES[pc]=30+(i%5));
-GROUP_B.forEach((pc,i)=>POSTCODE_DISTANCES[pc]=15+(i%5));
-GROUP_C.forEach((pc,i)=>POSTCODE_DISTANCES[pc]=1+(i%10));
+  // Load trolley and subtotal from localStorage
+  let trolley = JSON.parse(localStorage.getItem('grocerygo_trolley')) || [];
+  let subtotal = parseFloat(localStorage.getItem('grocerygo_subtotal')) || 0;
 
-const DISTANCE_FEES = [ {maxKm:10,fee:10},{maxKm:20,fee:15},{maxKm:30,fee:20},{maxKm:Infinity,fee:25} ];
+  function updateSummary(){
+    document.getElementById('checkoutSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById('checkoutTotal').textContent = `$${(subtotal + deliveryFee).toFixed(2)}`;
+  }
 
-function getDeliveryFee(postcode){
-    const dist = POSTCODE_DISTANCES[Number(postcode)];
-    if(dist===undefined) return -1;
-    for(const df of DISTANCE_FEES) if(dist<=df.maxKm) return df.fee;
-    return 25;
-}
+  updateSummary();
 
-// DOM Elements
-const dateInput=document.getElementById('delivery-date');
-const postcodeInput=document.getElementById('postcode');
-const slotContainer=document.getElementById('time-slot-container');
-const deliverySlotInput=document.getElementById('deliverySlot');
-const desktopButton=document.getElementById('submit-button-desktop');
-const mobileButton=document.getElementById('submit-button-mobile');
+  // Zone-based delivery slots
+  const zones = {
+    A:['Monday 8-11','Tuesday 11-15','Wednesday 15-19','Thursday 8-11','Friday 11-15','Saturday 15-19'],
+    B:['Monday 11-15','Tuesday 15-19','Wednesday 8-11','Thursday 11-15','Friday 15-19','Saturday 8-11'],
+    C:['Monday 15-19','Tuesday 8-11','Wednesday 11-15','Thursday 15-19','Friday 8-11','Saturday 11-15']
+  };
 
-// --- Utilities ---
-function getTrolleyData(){
-    return JSON.parse(localStorage.getItem('trolley')||'[]').map(item=>({id:item.id,price:item.price||0,quantity:item.quantity||1}));
-}
+  const zoneA = [4000,4005,4006,4007,4008,4009,4010,4011,4012,4013,4014,4017,4018,4025,4029,4030,4031,4032,4034,4035,4036,4051,4053,4054,4055,4059,4060,4061,4064,4065,4066,4067,4068,4069,4070,4072,4073,4074,4075,4076,4077,4078,4101,4102,4103,4104,4105,4106,4107,4108,4109,4110,4111,4112,4113,4114,4115,4116,4117,4118,4119,4120,4121,4122,4123,4124,4125,4127,4128,4129,4130,4132,4133,4151,4152,4153,4154,4155,4156,4157,4158,4159,4160,4161,4163,4164,4165,4169,4170,4171,4172,4173,4174,4178,4179,4183,4184,4205,4207,4280,4285,4300,4301,4303,4304,4305,4306,4307,4308,4311,4340,4346,4500,4501,4502,4503,4504,4505,4506,4507,4508,4509,4510,4511,4512,4513,4514,4515,4516,4517,4518,4519,4520,4521];
+  const zoneB = [4530,4532,4535,4550,4551,4552,4553,4554]; 
+  const zoneC = [4560,4561,4562,4563,4564,4565];
 
-function calculateSubtotal(trolley){ return trolley.reduce((sum,item)=>sum+(item.price||0)*(item.quantity||1),0); }
+  function getZone(postcode){
+    postcode = parseInt(postcode);
+    if(zoneA.includes(postcode)) return 'A';
+    if(zoneB.includes(postcode)) return 'B';
+    if(zoneC.includes(postcode)) return 'C';
+    return null;
+  }
 
-function showMessage(text,isError=false){
-    const box=document.getElementById('message-box');
-    const textEl=document.getElementById('message-text');
-    box.classList.remove('hidden');
-    box.className=isError?'mt-4 p-3 rounded-lg text-sm bg-red-100 text-red-800':'mt-4 p-3 rounded-lg text-sm bg-green-100 text-green-800';
-    textEl.textContent=text;
-}
+  function populateSlots(){
+    const postcode = document.getElementById('postcode').value;
+    const slotSelect = document.getElementById('deliverySlot');
+    slotSelect.innerHTML = '<option>Anytime</option>';
+    const zone = getZone(postcode);
+    if(!zone) slotSelect.innerHTML = '<option>Delivery not available in your area</option>';
+    else zones[zone].forEach(slot=>slotSelect.innerHTML += `<option>${slot}</option>`);
+  }
 
-// --- Stripe ---
-function initializeStripe(){
-    stripe=Stripe(STRIPE_PUBLISHABLE_KEY);
-    const elements=stripe.elements();
-    cardElement=elements.create('card',{style:{base:{fontSize:'16px','::placeholder':{color:'#9ca3af'}}},hidePostalCode:true});
-    cardElement.mount('#card-element');
-    cardElement.on('change',e=>{ if(e.error) showMessage(e.error.message,true); else document.getElementById('message-box').classList.add('hidden'); checkFormValidity(); });
-    document.getElementById('payment-form').addEventListener('submit',handlePayment);
-}
+  document.getElementById('postcode').addEventListener('change', populateSlots);
 
-// --- Payment Handler ---
-async function handlePayment(e){
-    e.preventDefault();
-    desktopButton.disabled=mobileButton.disabled=true;
-    showMessage('Processing payment...');
-    const customer={
-        name:document.getElementById('name').value,
-        email:document.getElementById('email').value,
-        mobile:document.getElementById('phone').value,
-        address:document.getElementById('address').value,
-        suburb:document.getElementById('suburb').value,
-        state:document.getElementById('state').value,
-        postcode:document.getElementById('postcode').value,
-        deliverySlot:deliverySlotInput.value,
-        deliveryDate:dateInput.value
-    };
-    try{
-        const trolley=getTrolleyData();
-        if(!trolley.length) throw new Error("Trolley is empty");
-        const res=await fetch(SERVER_CREATE_PI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trolley,customer})});
-        const data=await res.json();
-        if(data.error){ showMessage(data.error,true); return; }
-        const result=await stripe.confirmCardPayment(data.clientSecret,{payment_method:{card:cardElement,billing_details:{name:customer.name,email:customer.email}}});
-        if(result.error) showMessage(result.error.message,true);
-        else if(result.paymentIntent?.status==='succeeded'){
-            localStorage.removeItem('trolley');
-            window.location.href=`/success.html?order=${encodeURIComponent(data.orderNumber)}`;
-        }else showMessage('Payment status unknown',true);
-    }catch(err){ console.error(err); showMessage(err.message,true);}
-    finally{ checkFormValidity(); }
-}
+  // Stripe payment
+  const stripe = Stripe('pk_test_YourPublishableKeyHere'); 
+  document.getElementById('payBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    if(!name || !email) { alert("Please fill name and email"); return;}
+    const response = await fetch('/api/create-payment-intent',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({amount:(subtotal+deliveryFee)*100})
+    });
+    const data = await response.json();
+    const result = await stripe.confirmCardPayment(data.clientSecret,{
+      payment_method:{card:{},billing_details:{name,email}}
+    });
+    if(result.error){ alert(result.error.message); }
+    else if(result.paymentIntent.status==='succeeded'){
+      localStorage.removeItem('grocerygo_trolley');
+      localStorage.removeItem('grocerygo_subtotal');
+      window.location.href = `order-success.html?order=${Math.floor(Math.random()*1000000)}`;
+    }
+  });
 
-// --- Initialization ---
-window.onload=()=>{
-    dateInput.min=new Date().toISOString().split('T')[0];
-    dateInput.addEventListener('change',updateTimeSlots);
-    postcodeInput.addEventListener('input',calculateDeliveryEstimate);
-    updateOrderSummary(getDeliveryFee(postcodeInput.value.trim()));
-    updateTimeSlots();
-    initializeStripe();
-};
+});
 </script>
+
 </body>
 </html>
